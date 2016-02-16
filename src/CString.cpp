@@ -33,7 +33,7 @@ char* CStringBuf::get() const {
 #include <Windows.h>
 
 WCStringBuf::WCStringBuf(const StringRef path) :
-    errVal(ERR_OK) {
+    errored(false) {
 
     int res = ::MultiByteToWideChar(CP_UTF8,
         MB_ERR_INVALID_CHARS,
@@ -43,20 +43,24 @@ WCStringBuf::WCStringBuf(const StringRef path) :
         0);
 
     if (res == 0) {
+        // Not worrying for now
+        errored = true;
+        /*
         int err = ::GetLastError();
 
         switch (err) {
         case ERROR_INVALID_FLAGS:
         case ERROR_INVALID_PARAMETER:
-            errVal = ERR_INVALID_ARGUMENT;
+            errVal = SocketError::InvalidArgument;
             return;
         case ERROR_NO_UNICODE_TRANSLATION:
-            errVal = ERR_INVALID_TEXT;
+            errVal = SocketError::InvalidText;
             return;
         default:
-            errVal = ERR_UNKNOWN;
+            errVal = SocketError::Unknown;
             return;
         }
+        */
     }
 
     int utf16Len = res;
@@ -78,23 +82,27 @@ WCStringBuf::WCStringBuf(const StringRef path) :
         bufSize);
 
     if (convRes == 0) {
+        // Not worrying for now
+        errored = true;
+        /*
         int err = ::GetLastError();
 
         switch (err) {
         case ERROR_INSUFFICIENT_BUFFER:
-            errVal = ERR_NO_BUFFER_SPACE;
+            errVal = SocketError::NoBufferSpace;
             return;
         case ERROR_INVALID_FLAGS:
         case ERROR_INVALID_PARAMETER:
-            errVal = ERR_INVALID_ARGUMENT;
+            errVal = SocketError::InvalidArgument;
             return;
         case ERROR_NO_UNICODE_TRANSLATION:
-            errVal = ERR_INVALID_TEXT;
+            errVal = SocketError::InvalidText;
             return;
         default:
-            errVal = ERR_UNKNOWN;
+            errVal = SocketError::Unknown;
             return;
         }
+        */
     }
 
     strPtr[utf16Len] = L'\0';
@@ -110,14 +118,14 @@ wchar_t* WCStringBuf::get() const {
     return strPtr;
 }
 
-Error WCStringBuf::error() const {
-    return errVal;
+bool WCStringBuf::error() const {
+    return errored;
 }
 
 #define LONG_PREFIX L"\\\\?\\"
 
 WinPathBuf::WinPathBuf(const StringRef path) :
-    errVal(ERR_OK) {
+    errored(false) {
 
     int res = ::MultiByteToWideChar(CP_UTF8,
         MB_ERR_INVALID_CHARS,
@@ -127,20 +135,24 @@ WinPathBuf::WinPathBuf(const StringRef path) :
         0);
 
     if (res == 0) {
+        // Not worrying for now
+        errored = true;
+        /*
         int err = ::GetLastError();
 
         switch (err) {
         case ERROR_INVALID_FLAGS:
         case ERROR_INVALID_PARAMETER:
-            errVal = ERR_INVALID_ARGUMENT;
+            errVal = SocketError::InvalidArgument;
             return;
         case ERROR_NO_UNICODE_TRANSLATION:
-            errVal = ERR_INVALID_TEXT;
+            errVal = SocketError::InvalidText;
             return;
         default:
-            errVal = ERR_UNKNOWN;
+            errVal = SocketError::Unknown;
             return;
         }
+        */
     }
 
     int utf16Len = res;
@@ -168,23 +180,26 @@ WinPathBuf::WinPathBuf(const StringRef path) :
         bufSize);
 
     if (convRes == 0) {
+        // Not worrying for now
+        errored = true;
+        /*
         int err = ::GetLastError();
 
         switch (err) {
         case ERROR_INSUFFICIENT_BUFFER:
-            errVal = ERR_NO_BUFFER_SPACE;
+            errVal = SocketError::NoBufferSpace;
             return;
         case ERROR_INVALID_FLAGS:
         case ERROR_INVALID_PARAMETER:
-            errVal = ERR_INVALID_ARGUMENT;
+            errVal = SocketError::InvalidArgument;
             return;
         case ERROR_NO_UNICODE_TRANSLATION:
-            errVal = ERR_INVALID_TEXT;
+            errVal = SocketError::InvalidText;
             return;
         default:
-            errVal = ERR_UNKNOWN;
+            errVal = SocketError::Unknown;
             return;
-        }
+        */
     }
 
     pathPtr[utf16Len+offset] = L'\0';
@@ -200,8 +215,8 @@ wchar_t* WinPathBuf::get() const {
     return pathPtr;
 }
 
-Error WinPathBuf::error() const {
-    return errVal;
+bool WinPathBuf::error() const {
+    return errored;
 }
 
 #endif // _WIN32

@@ -13,71 +13,70 @@
 
 // For whatever reason, calls like AcceptEx and ConnectEx giver non-WSA error
 // values after you wait for their completion. Just added them to the switch.
-static
-Error getSocketError(int errVal) {
+static SocketError getSocketError(int errVal) {
 	switch (errVal) {
 	case WSANOTINITIALISED:
 	case WSAEINVALIDPROVIDER:
 	case WSAEINVALIDPROCTABLE:
-		return ERR_NOT_INITIALIZED;
+		return SocketError::NotInitialized;
 	case WSAENETDOWN:
-		return ERR_NETWORK_DOWN;
+		return SocketError::NetworkDown;
 	case WSAEADDRINUSE:
-		return ERR_ADDRESS_IN_USE;
+		return SocketError::AddressInUse;
 	case WSAEACCES:
-		return ERR_ACCESS_DENIED;
+		return SocketError::AccessDenied;
 	case WSAEALREADY:
-		return ERR_CONNECTION_ALREADY_IN_PROGRESS;
+		return SocketError::ConnectionAlreadyInProgress;
 	case WSAEADDRNOTAVAIL:
-		return ERR_ADDRESS_NOT_AVAILABLE;
+		return SocketError::AddressNotAvailable;
 	case WSAEOPNOTSUPP:
 	case WSAEAFNOSUPPORT:
 	case WSAEPROTONOSUPPORT:
 	case WSAESOCKTNOSUPPORT:
-		return ERR_NOT_SUPPORTED;
+		return SocketError::NotSupported;
 	case WSAECONNREFUSED:
 	case ERROR_CONNECTION_REFUSED:
-		return ERR_CONNECTION_REFUSED;
+		return SocketError::ConnectionRefused;
 	case WSAEFAULT:
-		return ERR_BAD_ADDRESS;
+		return SocketError::BadAddress;
 	case WSAEINVAL:
 	case WSAEPROTOTYPE:
 	case ERROR_INVALID_NETNAME: // Invalid socket addr
 	case WSAENOPROTOOPT: // Bad setsocketopt argument
-		return ERR_INVALID_ARGUMENT;
+		return SocketError::InvalidArgument;
 	case WSAEISCONN:
-		return ERR_ALREADY_CONNECTED;
+		return SocketError::AlreadyConnected;
 	case WSAENETUNREACH:
 	case ERROR_NETWORK_UNREACHABLE:
-		return ERR_NETWORK_UNREACHABLE;
+		return SocketError::NetworkUnreachable;
 	case WSAEHOSTUNREACH:
 	case ERROR_HOST_UNREACHABLE:
-		return ERR_HOST_UNREACHABLE;
+		return SocketError::HostUnreachable;
 	case WSAENOBUFS:
-		return ERR_NO_BUFFER_SPACE;
+		return SocketError::NoBufferSpace;
 	case WSAENOTSOCK:
-		return ERR_INVALID_HANDLE;
+		return SocketError::InvalidHandle;
 	case WSAEMFILE:
-		return ERR_TOO_MANY_HANDLES;
+		return SocketError::TooManyHandles;
 	case WSAETIMEDOUT:
 	case ERROR_SEM_TIMEOUT: // Timeout
-		return ERR_TIMED_OUT;
+		return SocketError::TimedOut;
 	case WSAECONNABORTED:
-		return ERR_CONNECTION_ABORTED;
+		return SocketError::ConnectionAborted;
 	case WSAECONNRESET:
-		return ERR_CONNECTION_RESET;
+		return SocketError::ConnectionReset;
 	case WSAEMSGSIZE:
-		return ERR_MESSAGE_TOO_LONG;
+		return SocketError::MessageTooLong;
 	case WSAENETRESET:
-		return ERR_NETWORK_RESET;
+		return SocketError::NetworkReset;
 	case WSAENOTCONN:
-		return ERR_NOT_CONNECTED;
+		return SocketError::NotConnected;
 	case WSAESHUTDOWN:
-		return ERR_CONNECTION_SHUTDOWN;
+		return SocketError::ConnectionShutdown;
 	case ERROR_OPERATION_ABORTED: // Socket close
-		return ERR_IO_CANCELED;
+		return SocketError::OperationAborted;
 	default:
-		return ERR_UNKNOWN;
+		return SocketError::Unknown;
 	}
 }
 
@@ -127,16 +126,16 @@ SockAddr Socket::getRemoteAddress() const {
     return remoteAddr;
 }
 
-Error Socket::bind(const SockAddr& sockAddr) {
+SocketError Socket::bind(const SockAddr& sockAddr) {
     if (socket != INVALID_SOCKET) {
-        return ERR_INVALID_STATE;
+        return SocketError::InvalidState;
     }
 
     SOCKADDR_STORAGE storage;
     sockAddr.toNative(&storage);
 
-    Error err = initSocket(storage.ss_family);
-    if (err != ERR_OK) {
+    SocketError err = initSocket(storage.ss_family);
+    if (err != SocketError::Ok) {
         return err;
     }
 
@@ -161,14 +160,14 @@ Error Socket::bind(const SockAddr& sockAddr) {
 
 	localAddr = SockAddr::fromNative(&storage);
 
-    return ERR_OK;
+    return SocketError::Ok;
 }
 
-Error Socket::listen() {
+SocketError Socket::listen() {
     return listen(SOMAXCONN);
 }
 
-Error Socket::listen(uint32_t queue) {
+SocketError Socket::listen(uint32_t queue) {
     if (queue > SOMAXCONN) {
         queue = SOMAXCONN;
     }
@@ -178,12 +177,12 @@ Error Socket::listen(uint32_t queue) {
         return getSocketError(::WSAGetLastError());
     }
 
-    return ERR_OK;
+    return SocketError::Ok;
 }
 
-Error Socket::accept(void* context, const AcceptCallback& callback) {
+SocketError Socket::accept(void* context, const AcceptCallback& callback) {
     if (socket == INVALID_SOCKET) {
-        return ERR_INVALID_STATE;
+        return SocketError::InvalidState;
     }
 
     // Initialize the overlapped data, including creating a socket
@@ -193,8 +192,8 @@ Error Socket::accept(void* context, const AcceptCallback& callback) {
     readOverlapped.socket = this;
 	readOverlapped.acceptCallback = callback;
 
-    Error err = initSocket(&readOverlapped.acceptData.acceptedSocket, localAddr.getFamily());
-    if (err != ERR_OK) {
+    SocketError err = initSocket(&readOverlapped.acceptData.acceptedSocket, localAddr.getFamily());
+    if (err != SocketError::Ok) {
         return err;
     }
 
@@ -221,20 +220,20 @@ Error Socket::accept(void* context, const AcceptCallback& callback) {
         }
     }
 
-    return ERR_OK;
+    return SocketError::Ok;
 }
 
-Error Socket::connect(void* context, const SockAddr& sockAddr, const ConnectCallback& callback) {
+SocketError Socket::connect(void* context, const SockAddr& sockAddr, const ConnectCallback& callback) {
     if (socket != INVALID_SOCKET) {
-        return ERR_INVALID_STATE;
+        return SocketError::InvalidState;
     }
 
     SOCKADDR_STORAGE storage;
     sockAddr.toNative(&storage);
 
     // Initialize our socket
-    Error err = initSocket(storage.ss_family);
-    if (err != ERR_OK) {
+    SocketError err = initSocket(storage.ss_family);
+    if (err != SocketError::Ok) {
         return err;
     }
 
@@ -278,12 +277,12 @@ Error Socket::connect(void* context, const SockAddr& sockAddr, const ConnectCall
         }
     }
 
-    return ERR_OK;
+    return SocketError::Ok;
 }
 
-Error Socket::read(void* context, char* buffer, uint32_t bufferLen, const XferCallback& callback) {
+SocketError Socket::read(void* context, char* buffer, uint32_t bufferLen, const XferCallback& callback) {
     if (socket == INVALID_SOCKET) {
-        return ERR_INVALID_STATE;
+        return SocketError::InvalidState;
     }
 
     // Initialize the overlapped data, including creating a socket
@@ -322,12 +321,12 @@ Error Socket::read(void* context, char* buffer, uint32_t bufferLen, const XferCa
         }
     }
 
-    return ERR_OK;
+    return SocketError::Ok;
 }
 
-Error Socket::write(void* context, const char* buffer, uint32_t bufferLen, const XferCallback& callback) {
+SocketError Socket::write(void* context, const char* buffer, uint32_t bufferLen, const XferCallback& callback) {
     if (socket == INVALID_SOCKET) {
-        return ERR_INVALID_STATE;
+        return SocketError::InvalidState;
     }
 
     // Initialize the overlapped data, including creating a socket
@@ -366,12 +365,12 @@ Error Socket::write(void* context, const char* buffer, uint32_t bufferLen, const
         }
     }
 
-    return ERR_OK;
+    return SocketError::Ok;
 }
 
-Error Socket::initSocket(int family) {
-    Error err = initSocket(&socket, family);
-    if (err != ERR_OK) {
+SocketError Socket::initSocket(int family) {
+    SocketError err = initSocket(&socket, family);
+    if (err != SocketError::Ok) {
         return err;
     }
 
@@ -382,13 +381,13 @@ Error Socket::initSocket(int family) {
         NULL);
     if (ptpIo == NULL) {
         //DWORD err = ::GetLastError();
-        return ERR_UNKNOWN;
+        return SocketError::Unknown;
     }
 
-    return ERR_OK;
+    return SocketError::Ok;
 }
 
-Error Socket::initSocket(SOCKET* pSocket, int family) {
+SocketError Socket::initSocket(SOCKET* pSocket, int family) {
     (*pSocket) = INVALID_SOCKET;
 
     // Create the socket
@@ -413,7 +412,7 @@ Error Socket::initSocket(SOCKET* pSocket, int family) {
     BOOL modeRes = ::SetFileCompletionNotificationModes((HANDLE)socket,
         FILE_SKIP_COMPLETION_PORT_ON_SUCCESS);
     if (!modeRes) {
-        return ERR_UNKNOWN;
+        return SocketError::Unknown;
     }
 
     // For IPv6 sockets, disable IPv6 only mode
@@ -434,7 +433,7 @@ Error Socket::initSocket(SOCKET* pSocket, int family) {
 	*/
 
     (*pSocket) = socket;
-    return ERR_OK;
+    return SocketError::Ok;
 }
 
 void Socket::onAccept(overlappedData* data) {
@@ -447,7 +446,7 @@ void Socket::onAccept(overlappedData* data) {
 
     if (setSockRes != 0) {
         int wsaErr = ::WSAGetLastError();
-        Error err = getSocketError(wsaErr);
+        SocketError err = getSocketError(wsaErr);
 
         // Trigger the callback
         data->acceptCallback(data->context, nullptr, err);
@@ -477,7 +476,7 @@ void Socket::onAccept(overlappedData* data) {
     ::memcpy(&newSock->remoteAddr, remotePtr, remoteLen);
 
     // Trigger the callback
-    data->acceptCallback(data->context, newSock, ERR_OK);
+    data->acceptCallback(data->context, newSock, SocketError::Ok);
 }
 
 void Socket::onConnect(overlappedData* data) {
@@ -485,7 +484,7 @@ void Socket::onConnect(overlappedData* data) {
 	int nameLen = sizeof(SOCKADDR_STORAGE);
 	int nameRes = ::getsockname(data->socket->socket, (sockaddr*)&storage, &nameLen);
 	if (nameRes != 0) {
-		Error err = getSocketError(::WSAGetLastError());
+        SocketError err = getSocketError(::WSAGetLastError());
 		data->connectCallback(data->context, err);
 		return;
 	}
@@ -494,15 +493,15 @@ void Socket::onConnect(overlappedData* data) {
     data->socket->remoteAddr.fromNative(&storage);
 
     // Trigger the callback
-    data->connectCallback(data->context, ERR_OK);
+    data->connectCallback(data->context, SocketError::Ok);
 }
 
 void Socket::onRead(overlappedData* data, uint64_t bytesXfer) {
-    data->xferCallback(data->context, bytesXfer, ERR_OK);
+    data->xferCallback(data->context, bytesXfer, SocketError::Ok);
 }
 
 void Socket::onWrite(overlappedData* data, uint64_t bytesXfer) {
-    data->xferCallback(data->context, bytesXfer, ERR_OK);
+    data->xferCallback(data->context, bytesXfer, SocketError::Ok);
 }
 
 void CALLBACK Socket::completionCallback(PTP_CALLBACK_INSTANCE instance,
@@ -530,7 +529,7 @@ void CALLBACK Socket::completionCallback(PTP_CALLBACK_INSTANCE instance,
             break;
         }
     } else {
-        Error err;
+        SocketError err;
 
         switch (data->ioType) {
         case IoType::Accept:

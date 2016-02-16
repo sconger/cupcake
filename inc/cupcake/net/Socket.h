@@ -4,8 +4,8 @@
 
 #include "cupcake/Cupcake.h"
 #include "cupcake/net/SockAddr.h"
+#include "cupcake/net/SocketError.h"
 #include "cupcake/text/StringRef.h"
-#include "cupcake/util/Error.h"
 
 #include <functional>
 
@@ -30,9 +30,9 @@
  */
 class Socket {
 public:
-    typedef std::function<void(void* context, Socket* acceptedSock, Error err)> AcceptCallback;
-    typedef std::function<void(void* context, Error err)> ConnectCallback;
-    typedef std::function<void(void* context, uint64_t bytesXfer, Error err)> XferCallback;
+    typedef std::function<void(void* context, Socket* acceptedSock, SocketError err)> AcceptCallback;
+    typedef std::function<void(void* context, SocketError err)> ConnectCallback;
+    typedef std::function<void(void* context, uint64_t bytesXfer, SocketError err)> XferCallback;
 
     Socket() noexcept;
     ~Socket();
@@ -42,15 +42,15 @@ public:
     SockAddr getLocalAddress() const;
     SockAddr getRemoteAddress() const;
 
-    Error bind(const SockAddr& sockAddr);
-    Error listen();
-    Error listen(uint32_t queue);
+    SocketError bind(const SockAddr& sockAddr);
+    SocketError listen();
+    SocketError listen(uint32_t queue);
 
-    Error startAccepting(void* context, const AcceptCallback& callback);
-    Error accept(void* context, const AcceptCallback& callback);
-    Error connect(void* context, const SockAddr& sockAddr, const ConnectCallback& callback);
-    Error read(void* context, char* buffer, uint32_t bufferLen, const XferCallback& callback);
-    Error write(void* context, const char* buffer, uint32_t bufferLen, const XferCallback& callback);
+    SocketError startAccepting(void* context, const AcceptCallback& callback);
+    SocketError accept(void* context, const AcceptCallback& callback);
+    SocketError connect(void* context, const SockAddr& sockAddr, const ConnectCallback& callback);
+    SocketError read(void* context, char* buffer, uint32_t bufferLen, const XferCallback& callback);
+    SocketError write(void* context, const char* buffer, uint32_t bufferLen, const XferCallback& callback);
 
 private:
     Socket(const Socket&) = delete;
@@ -58,14 +58,12 @@ private:
     Socket& operator=(const Socket&) = delete;
 	Socket& operator=(Socket&&) = delete;
 
-    Error initSocket(int family);
+    SocketError initSocket(int family);
 
 #if defined(_WIN32)
-    static
-    Error initSocket(SOCKET* pSocket, int family);
+    static SocketError initSocket(SOCKET* pSocket, int family);
 
-    static
-    void CALLBACK completionCallback(PTP_CALLBACK_INSTANCE instance,
+    static void CALLBACK completionCallback(PTP_CALLBACK_INSTANCE instance,
         PVOID context,
         PVOID overlapped,
         ULONG ioResult,

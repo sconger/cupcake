@@ -3,7 +3,6 @@
 #define CUPCAKE_CSTRING_H
 
 #include "cupcake/text/StringRef.h"
-#include "cupcake/util/Error.h"
 
 /*
  * Class to help get a null terminated C string for passing to OS functions.
@@ -30,13 +29,13 @@ public:
     WCStringBuf(const StringRef path);
     ~WCStringBuf();
 
-    Error error() const;
+    bool error() const;
     wchar_t* get() const;
     
 private:
     wchar_t statBuf[128];
     wchar_t* strPtr;
-    Error errVal;
+    bool errored;
 };
 
 /*
@@ -52,13 +51,13 @@ public:
     WinPathBuf(const StringRef path);
     ~WinPathBuf();
 
-    Error error() const;
+    bool error() const;
     wchar_t* get() const;
     
 private:
     wchar_t statBuf[128];
     wchar_t* pathPtr;
-    Error errVal;
+    bool errored;
 };
 #endif
 

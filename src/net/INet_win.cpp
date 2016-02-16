@@ -9,30 +9,30 @@
 
 namespace INet {
 
-Result<String> getHostName() {
+Result<String, SocketError> getHostName() {
     char buffer[256];
 
     int res = ::gethostname(buffer, sizeof(buffer));
 
     if (res != 0) {
         int wsaErr = ::WSAGetLastError();
-        Error err;
+        SocketError err;
 
         switch (wsaErr) {
         case WSANOTINITIALISED:
-			err = ERR_NOT_INITIALIZED;
+			err = SocketError::NotInitialized;
             break;
         case WSAENETDOWN:
-			err = ERR_NETWORK_DOWN;
+			err = SocketError::NetworkDown;
             break;
         default:
-			err = ERR_UNKNOWN;
+			err = SocketError::Unknown;
         }
 
-        return Result<String>(err);
+        return Result<String, SocketError>(err);
     }
 
-    return Result<String>(buffer);
+    return Result<String, SocketError>(buffer);
 }
 
 } // End namespace Inet

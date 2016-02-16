@@ -2,8 +2,6 @@
 #ifndef CUPCAKE_RESULT_H
 #define CUPCAKE_RESULT_H
 
-#include "cupcake/util/Error.h"
-
 /*
  * Baseically a std::pair<T, Error> for when a valid result or an error might
  * be possible. Has some convenience methods.
@@ -11,12 +9,12 @@
  * This expects an object with a trivial default constructor. Will destroy the
  * returned object unless it's transfered with get().
  */
-template<typename T>
+template<typename T, typename E>
 class Result {
 public:
-    explicit Result(T& value) : obj(value), err(0) {}
-    Result(T&& value) : obj(std::move(value)), err(0) {}
-    explicit Result(Error error) : obj(), err(error) {}
+    explicit Result(T& value) : obj(value), err() {}
+    Result(T&& value) : obj(std::move(value)), err() {}
+    explicit Result(E error) : obj(), err(error) {}
     Result(const Result&) = default;
 	Result(Result&& other) : obj(std::move(other.obj)), err(other.err) {}
     Result& operator=(const Result&) = default;
@@ -30,10 +28,10 @@ public:
     ~Result() = default;
     
     bool ok()  const {
-        return err == 0;
+        return err == E();
     }
     
-    Error error() const {
+    E error() const {
         return err;
     }
     
@@ -43,7 +41,7 @@ public:
     
 private:
     T obj;
-    Error err;
+    E err;
 };
 
 #endif // CUPCAKE_RESULT_H

@@ -6,7 +6,7 @@
 
 bool test_inet_gethostname() {
     // Just confirm that we get something back
-    Result<String> res = INet::getHostName();
+    Result<String, SocketError> res = INet::getHostName();
     
     if (!res.ok()) {
         testf("INet::getHostName() failed with %u", res.error());

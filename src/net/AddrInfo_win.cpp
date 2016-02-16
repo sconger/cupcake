@@ -17,27 +17,27 @@
 #include <Ws2tcpip.h>
 
 static
-Error getAddrInfoError(int wsaErr) {
+SocketError getAddrInfoError(int wsaErr) {
     switch (wsaErr) {
         case WSA_NOT_ENOUGH_MEMORY:
-            return ERR_OUT_OF_MEMORY;
+            return SocketError::OutOfMemory;
         case WSAEAFNOSUPPORT:
         case WSAEINVAL:
         case WSAESOCKTNOSUPPORT:
         case WSATYPE_NOT_FOUND:
         case WSASERVICE_NOT_FOUND:
-            return ERR_INVALID_ARGUMENT;
+            return SocketError::InvalidArgument;
         case WSAHOST_NOT_FOUND:
-            return ERR_ADDR_NONAME;
+            return SocketError::AddrNoName;
         case WSANO_DATA:
-            return ERR_ADDR_NODATA;
+            return SocketError::AddrNoData;
         case WSANO_RECOVERY:
-            return ERR_ADDR_FAIL;
+            return SocketError::AddrFail;
         case WSANOTINITIALISED:
-            return ERR_NOT_INITIALIZED;
+            return SocketError::NotInitialized;
         case WSATRY_AGAIN: // Fallthrough
         default:
-            return ERR_UNKNOWN;
+            return SocketError::Unknown;
     }
 }
 
@@ -58,7 +58,7 @@ void CALLBACK addrInfoCallback(PTP_CALLBACK_INSTANCE instance,
 
     // Defer to the blocking variant
     SockAddr resAddr;
-    Error err = Addrinfo::addrLookup(&resAddr, lookupInfo->name, lookupInfo->port, lookupInfo->prot);
+    SocketError err = Addrinfo::addrLookup(&resAddr, lookupInfo->name, lookupInfo->port, lookupInfo->prot);
     lookupInfo->callback(lookupInfo->context, resAddr, err);
 }
 
@@ -103,12 +103,12 @@ SockAddr getLoopback(INet::Protocol family, uint16_t port) {
     return SockAddr::fromNative(&storage);
 }
 
-Error parseNumeric(const StringRef name, uint16_t port, SockAddr* dest) {
+SocketError parseNumeric(const StringRef name, uint16_t port, SockAddr* dest) {
     WCStringBuf wideName(name);
 
-    if (wideName.error() != ERR_OK) {
+    if (wideName.error()) {
         (*dest) = SockAddr();
-        return wideName.error();
+        return SocketError::InvalidText;
     }
 
     wchar_t portBuf[6];
@@ -141,18 +141,18 @@ Error parseNumeric(const StringRef name, uint16_t port, SockAddr* dest) {
 
     (*dest) = SockAddr::fromNative((const sockaddr_storage*)resInfo->ai_addr);
     ::FreeAddrInfoExW(resInfo);
-    return ERR_OK;
+    return SocketError::Ok;
 }
 
-Error addrLookup(SockAddr* dest,
-                 const StringRef name,
-                 uint16_t port,
-                 INet::Protocol prot) {
+SocketError addrLookup(SockAddr* dest,
+                       const StringRef name,
+                       uint16_t port,
+                       INet::Protocol prot) {
     WCStringBuf wideName(name);
 
-    if (wideName.error() != ERR_OK) {
+    if (wideName.error()) {
         (*dest) = SockAddr();
-        return wideName.error();
+        return SocketError::InvalidText;
     }
 
     wchar_t portBuf[6];
@@ -189,14 +189,14 @@ Error addrLookup(SockAddr* dest,
 
     (*dest) = SockAddr::fromNative((const sockaddr_storage*)resInfo->ai_addr);
     ::FreeAddrInfoExW(resInfo);
-    return ERR_OK;
+    return SocketError::Ok;
 }
 
-Error asyncLookup(void* context,
-                  const StringRef name,
-                  uint16_t port,
-                  INet::Protocol prot,
-                  const lookupCallback& callback) {
+SocketError asyncLookup(void* context,
+                        const StringRef name,
+                        uint16_t port,
+                        INet::Protocol prot,
+                        const lookupCallback& callback) {
 
     // If asynchronous GetAddrInfoEx is supported, call it directly
     //if (Iocp::isGetAddrInfoExAsyncSupported()) {
@@ -217,14 +217,14 @@ Error asyncLookup(void* context,
 
         if (ptpWork == NULL) {
             // TODO: Log errors
-            return ERR_UNKNOWN;
+            return SocketError::Unknown;
         }
 
         ::SubmitThreadpoolWork(ptpWork);
         uniquePtr.release();
     //}
 
-    return ERR_OK;
+    return SocketError::Ok;
 }
 
 } // End namespace Addrinfo

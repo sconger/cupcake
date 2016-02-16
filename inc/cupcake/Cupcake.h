@@ -10,28 +10,6 @@
 #include <cstdint>
 #include <climits>
 
-// Basic common definitions
-
-#ifdef _MSC_VER
-// If visual studio
-
-// Visual Studio 2013 support (Not totally functional)
-#if _MSC_VER < 1900
-#define _ALLOW_KEYWORD_MACROS
-#define noexcept throw()
-
-typedef unsigned __int16 char16_t;
-typedef unsigned __int32 char32_t;
-#endif
-
-#else
-// If not visual studio
-
-#include <cstdint>
-#include <sys/types.h> // ssize_t
-
-#endif
-
 #define MIN_INT8 -128
 #define MAX_INT8 127
 #define MIN_INT16 –32768
