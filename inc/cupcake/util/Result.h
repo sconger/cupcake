@@ -18,13 +18,7 @@ public:
     Result(const Result&) = default;
 	Result(Result&& other) : obj(std::move(other.obj)), err(other.err) {}
     Result& operator=(const Result&) = default;
-	Result& operator=(Result&& other) {
-		if (this != other) {
-			obj = std::move(other.obj);
-			err = std::move(other.err);
-		}
-		return *this;
-	}
+    Result& operator=(Result&& other) = default;
     ~Result() = default;
     
     bool ok()  const {

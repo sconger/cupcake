@@ -2,7 +2,12 @@ cmake_minimum_required(VERSION 2.8.12)
 project(cupcake CXX)
 
 if(MSVC)
-  #TODO
+  set(CMAKE_CXX_FLAGS "/await")
+
+  # No easy way to remove default RTC flag. Need to turn off at the moment.
+  STRING (REGEX REPLACE "/RTC(su|[1su])" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+  STRING (REGEX REPLACE "/RTC(su|[1su])" "" CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}")
+  STRING (REGEX REPLACE "/RTC(su|[1su])" "" CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}")
 else()
   set(CMAKE_CXX_FLAGS "-std=c++11 -Wall")
   set(CMAKE_CXX_FLAGS_DEBUG "-g")

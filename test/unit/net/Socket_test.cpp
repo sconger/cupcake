@@ -6,111 +6,78 @@
 #include "cupcake/net/Socket.h"
 #include "cupcake/util/Cleaner.h"
 
-bool test_asyncsocket_bind() {
-    return true;
-}
+#include <thread>
 
-bool test_asyncsocket_accept() {
-    return true;
-}
-
-bool test_asyncsocket_readwrite() {
-    return true;
-}
-
-/*
-bool test_asyncsocket_bind() {
-    Error err;
+bool test_socket_basic() {
+    SocketError err;
+    SocketError writeErr;
     SockAddr bindAddr = Addrinfo::getAddrAny(INet::Protocol::Ipv4);
 
-    AsyncSocket socket;
+    Socket socket;
     err = socket.bind(bindAddr);
-    if (err != ERR_OK) {
+    if (err != SocketError::Ok) {
         testf("Failed to bind to IPv4 ADDR_ANY with: %d", err);
         return false;
     }
 
     err = socket.listen();
-    if (err != ERR_OK) {
+    if (err != SocketError::Ok) {
         testf("Failed to listen on bound socket with: %d", err);
         return false;
     }
 
-    return true;
-}
+    SockAddr connectAddr = Addrinfo::getLoopback(INet::Protocol::Ipv4, socket.getLocalAddress().getPort());
 
-bool test_asyncsocket_accept() {
-	String dummyContext("Hello");
-    Error err = ERR_OK;
-    Error callbackErr = ERR_OK;
-    SockAddr bindAddr = Addrinfo::getAddrAny(INet::Protocol::Ipv4);
-	bool done = false;
-	Condition cond;
+    std::thread writeThread([connectAddr, &writeErr] {
+        Socket connectSocket;
 
-    AsyncSocket acceptSock;
-	AsyncSocket connectSock;
+        printf("Starting connect\n");
+        writeErr = connectSocket.connect(connectAddr);
+        printf("Past connect\n");
+        if (writeErr != SocketError::Ok) {
+            connectSocket.close();
+            return;
+        }
 
-    err = acceptSock.bind(bindAddr);
-    if (err != ERR_OK) {
-        testf("Failed to bind to IPv4 ADDR_ANY with: %d", err);
+        printf("Starting write\n");
+        Result<uint32_t, SocketError> res = connectSocket.write("Howdy", 5);
+        printf("Past write\n");
+        if (!res.ok()) {
+            writeErr = res.error();
+        }
+
+        printf("Closing connect socket\n");
+        connectSocket.close();
+    });
+
+    Result<Socket, SocketError> acceptRes = socket.accept();
+    if (!acceptRes.ok()) {
+        testf("Failed to accept socket with: %d", acceptRes.error());
+        socket.close();
         return false;
     }
 
-    err = acceptSock.listen();
-    if (err != ERR_OK) {
-        testf("Failed to listen on bound socket with: %d", err);
+    Socket acceptedSocket = std::move(acceptRes.get());
+    char readBuffer[100] = {1, 2, 3, 4, 5};
+    Result<uint32_t, SocketError> readRes = acceptedSocket.read(readBuffer, 5);
+
+    writeThread.join();
+
+    if (!readRes.ok()) {
+        testf("Failed to write to socket with: %d", readRes.error());
+        acceptedSocket.close();
+        socket.close();
         return false;
     }
 
-	err = acceptSock.accept(&dummyContext, [&cond, &done, &callbackErr]
-		(void* context, AsyncSocket* newSock, Error acceptErr) {
-		delete newSock;
-		cond.lock();
-		callbackErr = acceptErr;
-		done = true;
-		cond.signal();
-		cond.unlock();
-	});
-	if (err != ERR_OK) {
-		testf("Accept on listen socket immediately failed with: %d", err);
-		return false;
-	}
+    if (::memcmp(readBuffer, "Howdy", 5) != 0) {
+        testf("Did not read expected string back from socket");
+        acceptedSocket.close();
+        socket.close();
+        return false;
+    }
 
-    // TODO: Compare acceptSock.getLocalAddress() to ADDR_ANY
-
-    SockAddr connectAddr = Addrinfo::getLoopback(INet::Protocol::Ipv4,
-            acceptSock.getLocalAddress().getPort());
-
-    err = connectSock.connect(&dummyContext, connectAddr, [&cond, &done, &callbackErr]
-		(void* context, Error connectErr) {
-		if (connectErr != ERR_OK) {
-			cond.lock();
-			callbackErr = connectErr;
-			done = true;
-			cond.signal();
-			cond.unlock();
-		}
-	});
-	if (err != ERR_OK) {
-		testf("Connect with new socket immediately failed with: %d", err);
-		return false;
-	}
-
-	cond.lock();
-	while (!done) {
-		cond.wait();
-	}
-	cond.unlock();
-
-	if (callbackErr != ERR_OK) {
-		testf("Accept/connect failed with: %d", callbackErr);
-		return false;
-	}
-
+    acceptedSocket.close();
+    socket.close();
     return true;
 }
-
-bool test_asyncsocket_readwrite() {
-    return true;
-}
-*/

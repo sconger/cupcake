@@ -7,7 +7,7 @@
 #include "cupcake/text/String.h"
 #include "cupcake/text/StringRef.h"
 
-#ifdef WIN32
+#ifdef _WIN32
 #include <Winsock2.h>
 #include <Windows.h>
 #else

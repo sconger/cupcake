@@ -19,7 +19,7 @@ private:
     char* strPtr;
 };
 
-#ifdef WIN32
+#ifdef _WIN32
 
 /*
  * Windows specific class to help get a null terminated wide C string.

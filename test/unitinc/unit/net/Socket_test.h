@@ -3,8 +3,6 @@
 #ifndef CUPCAKE_SOCKET_TEST_H
 #define CUPCAKE_SOCKET_TEST_H
 
-bool test_asyncsocket_bind();
-bool test_asyncsocket_accept();
-bool test_asyncsocket_readwrite();
+bool test_socket_basic();
 
 #endif // CUPCAKE_SOCKET_TEST_H
