@@ -66,36 +66,7 @@ private:
     SocketImpl& operator=(const SocketImpl&) = delete;
     SocketImpl& operator=(SocketImpl&&) = delete;
 
-    SocketError initSocket(int family);
-
-    static SocketError initSocket(SOCKET* pSocket, int family);
-
-    static void CALLBACK completionCallback(PTP_CALLBACK_INSTANCE instance,
-        PVOID context,
-        PVOID overlapped,
-        ULONG ioResult,
-        ULONG_PTR numberOfBytesTransferred,
-        PTP_IO ptpIo);
-
-    class CompletionResult {
-    public:
-        CompletionResult() : bytesTransfered(0), error(0) {}
-        ULONG_PTR bytesTransfered;
-        DWORD error;
-    };
-
-    // The objects holding the OVERLAPPED are pointers at the moment to make
-    // the object movable.
-    class OverlappedData {
-    public:
-        OverlappedData();
-
-        OVERLAPPED overlapped;
-        void* coroutineHandle;
-        CompletionResult* completionResult;
-    };
-
-    std::future<void> accept_co(Result<Socket, SocketError>* res);
+    std::future<void> accept_co(SOCKET preparedSocket, PTP_IO preparedPtpIo, Result<Socket, SocketError>* res);
     std::future<void> connect_co(const SockAddr& sockAddr, SocketError* res);
     std::future<void> read_co(char* buffer, uint32_t bufferLen, Result<uint32_t, SocketError>* res);
     std::future<void> write_co(const char* buffer, uint32_t bufferLen, Result<uint32_t, SocketError>* res);

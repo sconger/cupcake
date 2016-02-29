@@ -84,12 +84,194 @@ static SocketError getSocketError(int errVal) {
 	}
 }
 
+class CompletionResult {
+public:
+    CompletionResult() : bytesTransfered(0), error(0) {}
+    ULONG_PTR bytesTransfered;
+    DWORD error;
+};
+
+// Note that while it would be nice to use inheritance for this, the classic method won't
+// work due to needing to start with an OVERLAPPED (and not a vtable).
+class OverlappedData {
+public:
+    OverlappedData() :
+        coroutineHandle(nullptr),
+        completionResult(nullptr),
+        isAccept(false),
+        socket(INVALID_SOCKET),
+        ptpIo(NULL),
+        preparedSocket(INVALID_SOCKET),
+        addrBuffer(nullptr) {
+        ::memset(&overlapped, 0, sizeof(OVERLAPPED));
+    }
+
+    OverlappedData(SOCKET socket,
+                   PTP_IO ptpIo,
+                   SOCKET preparedSocket,
+                   char* addrBuffer) :
+        coroutineHandle(nullptr),
+        completionResult(nullptr),
+        isAccept(true),
+        socket(socket),
+        ptpIo(ptpIo),
+        preparedSocket(preparedSocket),
+        addrBuffer(addrBuffer) {
+        ::memset(&overlapped, 0, sizeof(OVERLAPPED));
+    }
+
+    void handleCompletion(ULONG ioResult, ULONG_PTR numberOfBytesTransferred) {
+        // Handle accept errors that indicate the other side hung up by retrying.
+        // No reason to expose to users.
+        if (isAccept &&
+            (ioResult == WSAECONNRESET ||
+             ioResult == ERROR_NETNAME_DELETED)) {
+            ::StartThreadpoolIo(ptpIo);
+
+            BOOL res = PrivWin::getAcceptEx()(socket,
+                preparedSocket,
+                addrBuffer,
+                0,
+                sizeof(SOCKET_ADDRESS) + 16,
+                sizeof(SOCKET_ADDRESS) + 16,
+                NULL,
+                (OVERLAPPED*)this);
+
+            if (res) {
+                ::CancelThreadpoolIo(ptpIo);
+                completionResult->error = ERROR_SUCCESS;
+                completionResult->bytesTransfered = 0;
+            } else {
+                int wsaErr = ::WSAGetLastError();
+
+                if (wsaErr != WSA_IO_PENDING) {
+                    ::CancelThreadpoolIo(ptpIo);
+                    completionResult->error = (ULONG)wsaErr;
+                    completionResult->bytesTransfered = 0;
+                }
+            }
+        } else {
+            completionResult->error = ioResult;
+            completionResult->bytesTransfered = numberOfBytesTransferred;
+        }
+
+        std::experimental::coroutine_handle<> convertedHandle =
+            std::experimental::coroutine_handle<>::from_address(coroutineHandle);
+        convertedHandle.resume();
+    }
+
+    // Needs to start with an OVERLAPPED
+    OVERLAPPED overlapped;
+
+    // Generic fields
+    void* coroutineHandle;
+    CompletionResult* completionResult;
+    bool isAccept;
+
+    // AcceptEx retry data
+    SOCKET socket;
+    PTP_IO ptpIo;
+    SOCKET preparedSocket;
+    char* addrBuffer;
+};
+
+static
+void CALLBACK completionCallback(PTP_CALLBACK_INSTANCE instance,
+    PVOID context,
+    PVOID overlapped,
+    ULONG ioResult,
+    ULONG_PTR numberOfBytesTransferred,
+    PTP_IO ptpIo) {
+
+    OverlappedData* data = (OverlappedData*)overlapped;
+    data->handleCompletion(ioResult, numberOfBytesTransferred);
+}
+
+static
+SocketError initSocket(SOCKET* pSocket, PTP_IO* pPtpIo, int family) {
+    (*pSocket) = INVALID_SOCKET;
+    (*pPtpIo) = NULL;
+
+    // Create the socket
+    DWORD flags = WSA_FLAG_OVERLAPPED;
+#ifdef WSA_FLAG_NO_HANDLE_INHERIT
+    flags |= WSA_FLAG_NO_HANDLE_INHERIT;
+#endif
+
+    SOCKET socket = ::WSASocketW(family,
+        SOCK_STREAM,
+        IPPROTO_TCP,
+        NULL,
+        0,
+        flags);
+
+    if (socket == INVALID_SOCKET) {
+        int wsaErr = ::WSAGetLastError();
+        return getSocketError(wsaErr);
+    }
+
+    // Allow immediate completion
+    BOOL modeRes = ::SetFileCompletionNotificationModes((HANDLE)socket,
+        FILE_SKIP_COMPLETION_PORT_ON_SUCCESS);
+    if (!modeRes) {
+        ::closesocket(socket);
+        return SocketError::Unknown;
+    }
+
+    // For IPv6 sockets, disable IPv6 only mode
+    /*
+    if (family == AF_INET6) {
+    DWORD optVal = 0;
+    int optRes = ::setsockopt(socket,
+    IPPROTO_IPV6,
+    IPV6_V6ONLY,
+    (char*)&optVal,
+    sizeof(optVal));
+
+    if (optRes != 0) {
+    int wsaErr = ::WSAGetLastError();
+    ::closesocket(socket);
+    return getSetsockoptError(wsaErr);
+    }
+    }
+    */
+
+    // Turn off Nagle's algorithm
+    DWORD noDelayOpt = 1;
+    int setOptRes = setsockopt(socket, IPPROTO_TCP, TCP_NODELAY, (const char*)&noDelayOpt, sizeof(DWORD));
+    if (setOptRes != 0) {
+        ::closesocket(socket);
+        return SocketError::Unknown;
+    }
+
+    // Create a thread pool IO for the handle
+    PTP_IO ptpIo = ::CreateThreadpoolIo((HANDLE)socket,
+        completionCallback,
+        NULL,
+        NULL);
+    if (ptpIo == NULL) {
+        ::closesocket(socket);
+        return SocketError::Unknown;
+    }
+
+    (*pSocket) = socket;
+    (*pPtpIo) = ptpIo;
+    return SocketError::Ok;
+}
+
 // General TODO: Need to re-submit if WSAECONNRESET and the like
 class SocketImpl::AcceptAwaiter {
 public:
-    AcceptAwaiter(SocketImpl* socketImpl) :
+    AcceptAwaiter(SocketImpl* socketImpl,
+                  SOCKET preparedSocket,
+                  PTP_IO preparedPtpIo) :
         socketImpl(socketImpl),
-        overlappedData(),
+        preparedSocket(preparedSocket),
+        preparedPtpIo(preparedPtpIo),
+        overlappedData(socketImpl->socket,
+                       socketImpl->ptpIo,
+                       preparedSocket,
+                       addrBuffer),
         newSocket(nullptr),
         socketError(SocketError::Ok) {}
 
@@ -101,30 +283,11 @@ public:
         overlappedData.coroutineHandle = coroutineHandle.to_address();
         overlappedData.completionResult = &completionResult;
 
-        // TODO: Move before wait along with PTPIO bit
-        // Initialize the socket
-        SocketError err = initSocket(&acceptedSocket, socketImpl->localAddr.getFamily());
-        if (err != SocketError::Ok) {
-            socketError = err;
-            return false;
-        }
-
-        ptpIo = ::CreateThreadpoolIo((HANDLE)acceptedSocket,
-            completionCallback,
-            this,
-            NULL);
-
-        if (ptpIo == NULL) {
-            //DWORD err = ::GetLastError();
-            socketError = SocketError::Unknown;
-            return false;
-        }
-
         // Trigger AcceptEx
         ::StartThreadpoolIo(socketImpl->ptpIo);
 
         BOOL res = PrivWin::getAcceptEx()(socketImpl->socket,
-            acceptedSocket,
+            preparedSocket,
             addrBuffer,
             0,
             sizeof(SOCKET_ADDRESS) + 16,
@@ -162,10 +325,10 @@ private:
     /* Helper that does the work needed after an accept succeeds */
     void onAccept() {
         // Have to set the SO_UPDATE_ACCEPT_CONTEXT (see AcceptEx doc)
-        int setSockRes = ::setsockopt(acceptedSocket,
+        int setSockRes = ::setsockopt(preparedSocket,
             SOL_SOCKET,
             SO_UPDATE_ACCEPT_CONTEXT,
-            (char *)&acceptedSocket,
+            (char *)&preparedSocket,
             sizeof(SOCKET));
 
         if (setSockRes != 0) {
@@ -191,20 +354,19 @@ private:
 
         // Make a happy new Socket object
         newSocket = new SocketImpl();
-        newSocket->socket = acceptedSocket;
-        newSocket->ptpIo = ptpIo;
+        newSocket->socket = preparedSocket;
+        newSocket->ptpIo = preparedPtpIo;
         // TODO: Use length values
         newSocket->localAddr = SockAddr::fromNative((const SOCKADDR_STORAGE*)localPtr);
         newSocket->remoteAddr = SockAddr::fromNative((const SOCKADDR_STORAGE*)remotePtr);
     }
 
     SocketImpl* socketImpl;
+    SOCKET preparedSocket;
+    PTP_IO preparedPtpIo;
     OverlappedData overlappedData;
     CompletionResult completionResult;
 
-    // Extra storage for AcceptEx
-    SOCKET acceptedSocket;
-    PTP_IO ptpIo;
     char addrBuffer[2 * (sizeof(SOCKADDR_STORAGE) + 16)];
 
     // Result values
@@ -441,12 +603,6 @@ private:
     uint32_t bytesXfer;
 };
 
-SocketImpl::OverlappedData::OverlappedData() :
-	coroutineHandle(nullptr),
-    completionResult(nullptr) {
-	::memset(&overlapped, 0, sizeof(OVERLAPPED));
-}
-
 SocketImpl::SocketImpl() :
     socket(INVALID_SOCKET),
     ptpIo(NULL),
@@ -481,7 +637,7 @@ SocketError SocketImpl::bind(const SockAddr& sockAddr) {
     SOCKADDR_STORAGE storage;
     sockAddr.toNative(&storage);
 
-    SocketError err = initSocket(storage.ss_family);
+    SocketError err = initSocket(&socket, &ptpIo, storage.ss_family);
     if (err != SocketError::Ok) {
         return err;
     }
@@ -527,8 +683,8 @@ SocketError SocketImpl::listen(uint32_t queue) {
     return SocketError::Ok;
 }
 
-std::future<void> SocketImpl::accept_co(Result<Socket, SocketError>* res) {
-    (*res) = await AcceptAwaiter(this);
+std::future<void> SocketImpl::accept_co(SOCKET preparedSocket, PTP_IO preparedPtpIo, Result<Socket, SocketError>* res) {
+    (*res) = await AcceptAwaiter(this, preparedSocket, preparedPtpIo);
 }
 
 Result<Socket, SocketError> SocketImpl::accept() {
@@ -536,8 +692,17 @@ Result<Socket, SocketError> SocketImpl::accept() {
         return Result<Socket, SocketError>(SocketError::InvalidState);
     }
 
+    SOCKET preparedSocket;
+    PTP_IO preparedPtpIo;
+
+    // Initialize a socket to pass to AcceptEx
+    SocketError err = initSocket(&preparedSocket, &preparedPtpIo, localAddr.getFamily());
+    if (err != SocketError::Ok) {
+        return Result<Socket, SocketError>(err);
+    }
+
     Result<Socket, SocketError> res(SocketError::Ok);
-    accept_co(&res).get();
+    accept_co(preparedSocket, preparedPtpIo, &res).get();
     return std::move(res);
 }
 
@@ -554,7 +719,7 @@ SocketError SocketImpl::connect(const SockAddr& sockAddr) {
     sockAddr.toNative(&storage);
 
     // Initialize our socket
-    SocketError err = initSocket(storage.ss_family);
+    SocketError err = initSocket(&socket, &ptpIo, storage.ss_family);
     if (err != SocketError::Ok) {
         return err;
     }
@@ -603,86 +768,3 @@ Result<uint32_t, SocketError> SocketImpl::write(const char* buffer, uint32_t buf
     return res;
 }
 
-SocketError SocketImpl::initSocket(int family) {
-    SocketError err = initSocket(&socket, family);
-    if (err != SocketError::Ok) {
-        return err;
-    }
-
-    // Create a thread pool IO for the handle
-    ptpIo = ::CreateThreadpoolIo((HANDLE)socket,
-        completionCallback,
-        this,
-        NULL);
-    if (ptpIo == NULL) {
-        //DWORD err = ::GetLastError();
-        return SocketError::Unknown;
-    }
-
-    return SocketError::Ok;
-}
-
-SocketError SocketImpl::initSocket(SOCKET* pSocket, int family) {
-    (*pSocket) = INVALID_SOCKET;
-
-    // Create the socket
-    DWORD flags = WSA_FLAG_OVERLAPPED;
-#ifdef WSA_FLAG_NO_HANDLE_INHERIT
-    flags |= WSA_FLAG_NO_HANDLE_INHERIT;
-#endif
-
-    SOCKET socket = ::WSASocketW(family,
-        SOCK_STREAM,
-        IPPROTO_TCP,
-        NULL,
-        0,
-        flags);
-
-    if (socket == INVALID_SOCKET) {
-        int wsaErr = ::WSAGetLastError();
-        return getSocketError(wsaErr);
-    }
-
-    // Allow immediate completion
-    BOOL modeRes = ::SetFileCompletionNotificationModes((HANDLE)socket,
-        FILE_SKIP_COMPLETION_PORT_ON_SUCCESS);
-    if (!modeRes) {
-        return SocketError::Unknown;
-    }
-
-    // For IPv6 sockets, disable IPv6 only mode
-	/*
-    if (family == AF_INET6) {
-        DWORD optVal = 0;
-        int optRes = ::setsockopt(socket,
-            IPPROTO_IPV6,
-            IPV6_V6ONLY,
-            (char*)&optVal,
-            sizeof(optVal));
-
-        if (optRes != 0) {
-            int wsaErr = ::WSAGetLastError();
-            return getSetsockoptError(wsaErr);
-        }
-    }
-	*/
-
-    (*pSocket) = socket;
-    return SocketError::Ok;
-}
-
-void CALLBACK SocketImpl::completionCallback(PTP_CALLBACK_INSTANCE instance,
-        PVOID context,
-        PVOID overlapped,
-        ULONG ioResult,
-        ULONG_PTR numberOfBytesTransferred,
-        PTP_IO ptpIo) {
-
-    OverlappedData* data = (OverlappedData*)overlapped;
-    data->completionResult->error = ioResult;
-    data->completionResult->bytesTransfered = numberOfBytesTransferred;
-    
-    std::experimental::coroutine_handle<> coroutineHandle =
-        std::experimental::coroutine_handle<>::from_address(data->coroutineHandle);
-    coroutineHandle.resume();
-}

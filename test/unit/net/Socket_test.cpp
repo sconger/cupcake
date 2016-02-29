@@ -31,22 +31,17 @@ bool test_socket_basic() {
     std::thread writeThread([connectAddr, &writeErr] {
         Socket connectSocket;
 
-        printf("Starting connect\n");
         writeErr = connectSocket.connect(connectAddr);
-        printf("Past connect\n");
         if (writeErr != SocketError::Ok) {
             connectSocket.close();
             return;
         }
 
-        printf("Starting write\n");
         Result<uint32_t, SocketError> res = connectSocket.write("Howdy", 5);
-        printf("Past write\n");
         if (!res.ok()) {
             writeErr = res.error();
         }
 
-        printf("Closing connect socket\n");
         connectSocket.close();
     });
 
