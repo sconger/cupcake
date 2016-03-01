@@ -1,8 +1,34 @@
 cmake_minimum_required(VERSION 2.8.12)
 project(cupcake CXX)
+set_property(GLOBAL PROPERTY USE_FOLDERS ON)
+
+# http://stackoverflow.com/questions/31966135/cmake-source-group-not-working-correctly-with-hierarchical-project-setup
+function(_gen_source_group FILES)
+  if(MSVC)
+    foreach(FILE ${FILES}) 
+      # Get the directory of the source file
+      get_filename_component(PARENT_DIR "${FILE}" DIRECTORY)
+
+      # Remove common directory prefix to make the group
+      string(REPLACE "${CMAKE_CURRENT_SOURCE_DIR}" "" GROUP "${PARENT_DIR}")
+
+      # Make sure we are using windows slashes
+      string(REPLACE "/" "\\" GROUP "${GROUP}")
+
+      # Group into "Source Files" and "Header Files"
+      if ("${FILE}" MATCHES ".*\\.cpp")
+        set(GROUP "Source Files${GROUP}")
+      elseif("${FILE}" MATCHES ".*\\.h")
+        set(GROUP "Header Files${GROUP}")
+      endif()
+
+      source_group("${GROUP}" FILES "${FILE}")
+    endforeach()
+  endif()
+endfunction(_gen_source_group)
 
 if(MSVC)
-  set(CMAKE_CXX_FLAGS "/await")
+  set(CMAKE_CXX_FLAGS "/await /EHsc")
 
   # No easy way to remove default RTC flag. Need to turn off at the moment.
   STRING (REGEX REPLACE "/RTC(su|[1su])" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
@@ -48,3 +74,5 @@ target_include_directories(cupcake PUBLIC
   inc
   priv_inc
 )
+
+_gen_source_group("${CUPCAKE_SRC}")

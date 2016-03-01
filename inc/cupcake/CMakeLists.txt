@@ -1,3 +1,4 @@
+add_subdirectory(http)
 add_subdirectory(net)
 add_subdirectory(text)
 add_subdirectory(util)
@@ -12,5 +13,3 @@ set(CUPCAKE_SRC
   ${LOCAL}
   PARENT_SCOPE
 )
-
-source_group(inc\\cupcake FILES ${LOCAL})

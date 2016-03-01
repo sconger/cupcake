@@ -8,5 +8,3 @@ set(CUPCAKE_SRC
   ${LOCAL}
   PARENT_SCOPE
 )
-
-source_group(src\\text FILES ${LOCAL})
