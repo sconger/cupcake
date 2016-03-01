@@ -7,6 +7,7 @@
 #include "cupcake/util/Cleaner.h"
 
 #include <thread>
+#include <vector>
 
 bool test_socket_basic() {
     SocketError err;
@@ -74,5 +75,64 @@ bool test_socket_basic() {
 
     acceptedSocket.close();
     socket.close();
+    return true;
+}
+
+bool test_socket_accept_multiple() {
+    SocketError err;
+    SocketError writeErr;
+    SockAddr bindAddr = Addrinfo::getAddrAny(INet::Protocol::Ipv4);
+
+    Socket socket;
+    err = socket.bind(bindAddr);
+    if (err != SocketError::Ok) {
+        testf("Failed to bind to IPv4 ADDR_ANY with: %d", err);
+        return false;
+    }
+
+    err = socket.listen();
+    if (err != SocketError::Ok) {
+        testf("Failed to listen on bound socket with: %d", err);
+        return false;
+    }
+
+    SockAddr connectAddr = Addrinfo::getLoopback(INet::Protocol::Ipv4, socket.getLocalAddress().getPort());
+
+    std::vector<std::thread> connectThreads;
+    std::vector<SocketError> connectErrors;
+
+    for (auto i = 0; i < 10; i++) {
+        connectThreads.emplace_back(std::thread([connectAddr, &connectErrors] {
+            Socket connectSocket;
+            connectErrors.push_back(connectSocket.connect(connectAddr));
+            connectSocket.close();
+        }));
+    }
+
+    for (auto i = 0; i < 10; i++) {
+        Result<Socket, SocketError> acceptRes = socket.accept();
+        if (!acceptRes.ok()) {
+            testf("Failed to accept socket with: %d", acceptRes.error());
+            socket.close();
+            return false;
+        }
+
+        Socket acceptedSocket = std::move(acceptRes.get());
+        acceptedSocket.close();
+    }
+
+    for (std::thread& thread : connectThreads) {
+        thread.join();
+    }
+
+    socket.close();
+
+    for (SocketError connectError : connectErrors) {
+        if (connectError != SocketError::Ok) {
+            testf("One of the connection attempts failed with: %d", connectError);
+            return false;
+        }
+    }
+    
     return true;
 }

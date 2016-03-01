@@ -59,6 +59,7 @@ static SocketError getSocketError(int errVal) {
 	case WSAENOBUFS:
 		return SocketError::NoBufferSpace;
 	case WSAENOTSOCK:
+    case ERROR_INVALID_HANDLE:
 		return SocketError::InvalidHandle;
 	case WSAEMFILE:
 		return SocketError::TooManyHandles;
@@ -91,6 +92,57 @@ public:
     DWORD error;
 };
 
+/*
+ * Checks if this is an AcceptEx error where we should just retry.
+ */
+static
+bool isAcceptExRetryError(int error) {
+    switch (error) {
+    case WSAECONNRESET:
+    case ERROR_NETNAME_DELETED:
+        return true;
+    default:
+        return false;
+    }
+}
+
+/*
+ * Calls AcceptEx with a retry loop based on the immediate error.
+ */
+static
+int acceptExWithRetry(SOCKET socket,
+                      PTP_IO ptpIo,
+                      SOCKET preparedSocket,
+                      char* addrBuffer,
+                      OVERLAPPED* overlappedData) {
+    while (true) {
+        ::StartThreadpoolIo(ptpIo);
+
+        BOOL res = PrivWin::getAcceptEx()(socket,
+            preparedSocket,
+            addrBuffer,
+            0,
+            sizeof(SOCKET_ADDRESS) + 16,
+            sizeof(SOCKET_ADDRESS) + 16,
+            NULL,
+            overlappedData);
+
+        if (res) {
+            ::CancelThreadpoolIo(ptpIo);
+            return ERROR_SUCCESS;
+        } else {
+            int wsaErr = ::WSAGetLastError();
+
+            if (!isAcceptExRetryError(wsaErr)) {
+                if (wsaErr != WSA_IO_PENDING) {
+                    ::CancelThreadpoolIo(ptpIo);
+                }
+                return wsaErr;
+            }
+        }
+    }
+}
+
 // Note that while it would be nice to use inheritance for this, the classic method won't
 // work due to needing to start with an OVERLAPPED (and not a vtable).
 class OverlappedData {
@@ -98,11 +150,7 @@ public:
     OverlappedData() :
         coroutineHandle(nullptr),
         completionResult(nullptr),
-        isAccept(false),
-        socket(INVALID_SOCKET),
-        ptpIo(NULL),
-        preparedSocket(INVALID_SOCKET),
-        addrBuffer(nullptr) {
+        isAccept(false) {
         ::memset(&overlapped, 0, sizeof(OVERLAPPED));
     }
 
@@ -121,35 +169,19 @@ public:
     }
 
     void handleCompletion(ULONG ioResult, ULONG_PTR numberOfBytesTransferred) {
-        // Handle accept errors that indicate the other side hung up by retrying.
+        // Handle AcceotEx errors that indicate the other side hung up by retrying.
         // No reason to expose to users.
         if (isAccept &&
-            (ioResult == WSAECONNRESET ||
-             ioResult == ERROR_NETNAME_DELETED)) {
-            ::StartThreadpoolIo(ptpIo);
+            isAcceptExRetryError((int)ioResult)) {
 
-            BOOL res = PrivWin::getAcceptEx()(socket,
+            int acceptExErr = acceptExWithRetry(socket,
+                ptpIo,
                 preparedSocket,
                 addrBuffer,
-                0,
-                sizeof(SOCKET_ADDRESS) + 16,
-                sizeof(SOCKET_ADDRESS) + 16,
-                NULL,
                 (OVERLAPPED*)this);
 
-            if (res) {
-                ::CancelThreadpoolIo(ptpIo);
-                completionResult->error = ERROR_SUCCESS;
-                completionResult->bytesTransfered = 0;
-            } else {
-                int wsaErr = ::WSAGetLastError();
-
-                if (wsaErr != WSA_IO_PENDING) {
-                    ::CancelThreadpoolIo(ptpIo);
-                    completionResult->error = (ULONG)wsaErr;
-                    completionResult->bytesTransfered = 0;
-                }
-            }
+            completionResult->error = (ULONG)acceptExErr;
+            completionResult->bytesTransfered = 0;
         } else {
             completionResult->error = ioResult;
             completionResult->bytesTransfered = numberOfBytesTransferred;
@@ -284,36 +316,27 @@ public:
         overlappedData.completionResult = &completionResult;
 
         // Trigger AcceptEx
-        ::StartThreadpoolIo(socketImpl->ptpIo);
-
-        BOOL res = PrivWin::getAcceptEx()(socketImpl->socket,
+        int acceptExErr = acceptExWithRetry(socketImpl->socket,
+            socketImpl->ptpIo,
             preparedSocket,
             addrBuffer,
-            0,
-            sizeof(SOCKET_ADDRESS) + 16,
-            sizeof(SOCKET_ADDRESS) + 16,
-            NULL,
             (OVERLAPPED*)&overlappedData);
 
-        if (res) {
-            ::CancelThreadpoolIo(socketImpl->ptpIo);
+        if (acceptExErr == ERROR_SUCCESS) {
             onAccept();
             return false;
-        } else {
-            int wsaErr = ::WSAGetLastError();
-
-            if (wsaErr != WSA_IO_PENDING) {
-                ::CancelThreadpoolIo(socketImpl->ptpIo);
-                socketError = getSocketError(wsaErr);
-                return false;
-            }
+        } else if (acceptExErr != WSA_IO_PENDING) {
+            socketError = getSocketError(acceptExErr);
+            return false;
         }
 
         return true;
     }
 
     Result<Socket, SocketError> await_resume() {
-        if (completionResult.error != ERROR_SUCCESS) {
+        if (socketError != SocketError::Ok) {
+            return Result<Socket, SocketError>(socketError);
+        } else if (completionResult.error != ERROR_SUCCESS) {
             return Result<Socket, SocketError>(getSocketError((int)completionResult.error));
         } else {
             onAccept();
@@ -422,7 +445,9 @@ public:
     }
 
     SocketError await_resume() {
-        if (completionResult.error != ERROR_SUCCESS) {
+        if (socketError != SocketError::Ok) {
+            return socketError;
+        } else if (completionResult.error != ERROR_SUCCESS) {
             return getSocketError((int)completionResult.error);
         } else {
             onConnect();

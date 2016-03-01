@@ -68,6 +68,7 @@ int main(int argc, const char** argv) {
     RUN_TEST(test_addrinfo_asynclookup);
 
     RUN_TEST(test_socket_basic);
+    RUN_TEST(test_socket_accept_multiple);
 
     if (testRes) {
         printf("FAILURE: Not all tests passed.\n");
