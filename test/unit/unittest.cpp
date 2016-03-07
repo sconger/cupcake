@@ -69,6 +69,7 @@ int main(int argc, const char** argv) {
 
     RUN_TEST(test_socket_basic);
     RUN_TEST(test_socket_accept_multiple);
+    RUN_TEST(test_socket_set_options);
 
     if (testRes) {
         printf("FAILURE: Not all tests passed.\n");

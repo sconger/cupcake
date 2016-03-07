@@ -15,6 +15,12 @@ bool test_socket_basic() {
     SockAddr bindAddr = Addrinfo::getAddrAny(INet::Protocol::Ipv4);
 
     Socket socket;
+    err = socket.init(INet::Protocol::Ipv4);
+    if (err != SocketError::Ok) {
+        testf("Failed to init socket with: %d", err);
+        return false;
+    }
+
     err = socket.bind(bindAddr);
     if (err != SocketError::Ok) {
         testf("Failed to bind to IPv4 ADDR_ANY with: %d", err);
@@ -31,6 +37,12 @@ bool test_socket_basic() {
 
     std::thread writeThread([connectAddr, &writeErr] {
         Socket connectSocket;
+
+        writeErr = connectSocket.init(INet::Protocol::Ipv4);
+        if (writeErr != SocketError::Ok) {
+            connectSocket.close();
+            return;
+        }
 
         writeErr = connectSocket.connect(connectAddr);
         if (writeErr != SocketError::Ok) {
@@ -84,6 +96,12 @@ bool test_socket_accept_multiple() {
     SockAddr bindAddr = Addrinfo::getAddrAny(INet::Protocol::Ipv4);
 
     Socket socket;
+    err = socket.init(INet::Protocol::Ipv4);
+    if (err != SocketError::Ok) {
+        testf("Failed to init socket with: %d", err);
+        return false;
+    }
+
     err = socket.bind(bindAddr);
     if (err != SocketError::Ok) {
         testf("Failed to bind to IPv4 ADDR_ANY with: %d", err);
@@ -104,7 +122,17 @@ bool test_socket_accept_multiple() {
     for (auto i = 0; i < 10; i++) {
         connectThreads.emplace_back(std::thread([connectAddr, &connectErrors] {
             Socket connectSocket;
-            connectErrors.push_back(connectSocket.connect(connectAddr));
+            SocketError connectError;
+
+            connectError = connectSocket.init(INet::Protocol::Ipv4);
+            if (connectError != SocketError::Ok) {
+                connectErrors.push_back(connectError);
+                return;
+            }
+
+            connectError = connectSocket.connect(connectAddr);
+
+            connectErrors.push_back(connectError);
             connectSocket.close();
         }));
     }
@@ -134,5 +162,32 @@ bool test_socket_accept_multiple() {
         }
     }
     
+    return true;
+}
+
+bool test_socket_set_options() {
+    Socket socket;
+    SocketError err;
+
+    err = socket.init(INet::Protocol::Ipv6);
+    if (err != SocketError::Ok) {
+        testf("Failed to init socket with: %d", err);
+        return false;
+    }
+
+    // Difficult to validate these do anything as there is some platform variation on reading the
+    // values back, so just testing that a reasonable value doesn't fail.
+    err = socket.setReadBuf(1024);
+    if (err != SocketError::Ok) {
+        testf("Failed to set socket read buffer with: %d", err);
+        return false;
+    }
+
+    err = socket.setWriteBuf(1024);
+    if (err != SocketError::Ok) {
+        testf("Failed to set socket read buffer with: %d", err);
+        return false;
+    }
+
     return true;
 }

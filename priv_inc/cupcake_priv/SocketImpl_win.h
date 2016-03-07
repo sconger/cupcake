@@ -41,6 +41,7 @@ public:
     SocketImpl();
     ~SocketImpl();
 
+    SocketError init(INet::Protocol prot);
     void close();
 
     SockAddr getLocalAddress() const;
@@ -52,8 +53,14 @@ public:
 
     Result<Socket, SocketError> accept();
     SocketError connect(const SockAddr& sockAddr);
+
     Result<uint32_t, SocketError> read(char* buffer, uint32_t bufferLen);
     Result<uint32_t, SocketError> write(const char* buffer, uint32_t bufferLen);
+
+    SocketError shutdownRead();
+    SocketError shutdownWrite();
+    SocketError setReadBuf(uint32_t bufferSize);
+    SocketError setWriteBuf(uint32_t bufferSize);
 
 private:
     class AcceptAwaiter;

@@ -30,6 +30,10 @@ Socket::~Socket() {
     delete impl;
 }
 
+SocketError Socket::init(INet::Protocol prot) {
+    return impl->init(prot);
+}
+
 void Socket::close() {
     impl->close();
 }
@@ -69,3 +73,20 @@ Result<uint32_t, SocketError> Socket::read(char* buffer, uint32_t bufferLen) {
 Result<uint32_t, SocketError> Socket::write(const char* buffer, uint32_t bufferLen) {
     return impl->write(buffer, bufferLen);
 }
+
+SocketError Socket::shutdownRead() {
+    return impl->shutdownRead();
+}
+
+SocketError Socket::shutdownWrite() {
+    return impl->shutdownWrite();
+}
+
+SocketError Socket::setReadBuf(uint32_t bufferSize) {
+    return impl->setReadBuf(bufferSize);
+}
+
+SocketError Socket::setWriteBuf(uint32_t bufferSize) {
+    return impl->setWriteBuf(bufferSize);
+}
+

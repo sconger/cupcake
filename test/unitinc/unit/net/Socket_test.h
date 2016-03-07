@@ -5,5 +5,6 @@
 
 bool test_socket_basic();
 bool test_socket_accept_multiple();
+bool test_socket_set_options();
 
 #endif // CUPCAKE_SOCKET_TEST_H

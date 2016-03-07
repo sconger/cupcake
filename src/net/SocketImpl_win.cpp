@@ -272,8 +272,9 @@ SocketError initSocket(SOCKET* pSocket, PTP_IO* pPtpIo, int family) {
     DWORD noDelayOpt = 1;
     int setOptRes = setsockopt(socket, IPPROTO_TCP, TCP_NODELAY, (const char*)&noDelayOpt, sizeof(DWORD));
     if (setOptRes != 0) {
+        int wsaErr = ::WSAGetLastError();
         ::closesocket(socket);
-        return SocketError::Unknown;
+        return getSocketError(wsaErr);
     }
 
     // Create a thread pool IO for the handle
@@ -639,6 +640,24 @@ SocketImpl::~SocketImpl() {
     close();
 }
 
+SocketError SocketImpl::init(INet::Protocol prot) {
+    if (socket != INVALID_SOCKET) {
+        return SocketError::InvalidState;
+    }
+
+    int family;
+
+    if (prot == INet::Protocol::Ipv4) {
+        family = AF_INET;
+    } else if (prot == INet::Protocol::Ipv6) {
+        family = AF_INET6;
+    } else {
+        return SocketError::InvalidArgument;
+    }
+
+    return initSocket(&socket, &ptpIo, family);
+}
+
 void SocketImpl::close() {
     if (socket != INVALID_SOCKET) {
         ::closesocket(socket);
@@ -655,17 +674,12 @@ SockAddr SocketImpl::getRemoteAddress() const {
 }
 
 SocketError SocketImpl::bind(const SockAddr& sockAddr) {
-    if (socket != INVALID_SOCKET) {
-        return SocketError::InvalidState;
+    if (socket == INVALID_SOCKET) {
+        return SocketError::NotInitialized;
     }
 
     SOCKADDR_STORAGE storage;
     sockAddr.toNative(&storage);
-
-    SocketError err = initSocket(&socket, &ptpIo, storage.ss_family);
-    if (err != SocketError::Ok) {
-        return err;
-    }
 
     // For bind we also want to set the SO_EXCLUSIVEADDRUSE option
     DWORD opt = 1;
@@ -696,6 +710,10 @@ SocketError SocketImpl::listen() {
 }
 
 SocketError SocketImpl::listen(uint32_t queue) {
+    if (socket == INVALID_SOCKET) {
+        return SocketError::NotInitialized;
+    }
+
     if (queue > SOMAXCONN) {
         queue = SOMAXCONN;
     }
@@ -714,7 +732,7 @@ std::future<void> SocketImpl::accept_co(SOCKET preparedSocket, PTP_IO preparedPt
 
 Result<Socket, SocketError> SocketImpl::accept() {
     if (socket == INVALID_SOCKET) {
-        return Result<Socket, SocketError>(SocketError::InvalidState);
+        return Result<Socket, SocketError>(SocketError::NotInitialized);
     }
 
     SOCKET preparedSocket;
@@ -736,18 +754,12 @@ std::future<void> SocketImpl::connect_co(const SockAddr& sockAddr, SocketError* 
 }
 
 SocketError SocketImpl::connect(const SockAddr& sockAddr) {
-    if (socket != INVALID_SOCKET) {
-        return SocketError::InvalidState;
+    if (socket == INVALID_SOCKET) {
+        return SocketError::NotInitialized;
     }
 
     SOCKADDR_STORAGE storage;
     sockAddr.toNative(&storage);
-
-    // Initialize our socket
-    SocketError err = initSocket(&socket, &ptpIo, storage.ss_family);
-    if (err != SocketError::Ok) {
-        return err;
-    }
 
     // For reasons that I presume have to do with DisconnectEx, ConnectEx
     // requires a bound socket
@@ -771,7 +783,7 @@ std::future<void> SocketImpl::read_co(char* buffer, uint32_t bufferLen, Result<u
 
 Result<uint32_t, SocketError> SocketImpl::read(char* buffer, uint32_t bufferLen) {
     if (socket == INVALID_SOCKET) {
-        return Result<uint32_t, SocketError>(SocketError::InvalidState);
+        return Result<uint32_t, SocketError>(SocketError::NotInitialized);
     }
 
     Result<uint32_t, SocketError> res(SocketError::Ok);
@@ -785,7 +797,7 @@ std::future<void> SocketImpl::write_co(const char* buffer, uint32_t bufferLen, R
 
 Result<uint32_t, SocketError> SocketImpl::write(const char* buffer, uint32_t bufferLen) {
     if (socket == INVALID_SOCKET) {
-        return Result<uint32_t, SocketError>(SocketError::InvalidState);
+        return Result<uint32_t, SocketError>(SocketError::NotInitialized);
     }
 
     Result<uint32_t, SocketError> res(SocketError::Ok);
@@ -793,3 +805,68 @@ Result<uint32_t, SocketError> SocketImpl::write(const char* buffer, uint32_t buf
     return res;
 }
 
+SocketError SocketImpl::shutdownRead() {
+    if (socket == INVALID_SOCKET) {
+        return SocketError::NotInitialized;
+    }
+
+    int res = ::shutdown(socket, SD_RECEIVE);
+    if (res != 0) {
+        int wsaErr = ::WSAGetLastError();
+        return getSocketError(wsaErr);
+    }
+
+    return SocketError::Ok;
+}
+
+SocketError SocketImpl::shutdownWrite() {
+    if (socket == INVALID_SOCKET) {
+        return SocketError::NotInitialized;
+    }
+
+    int res = ::shutdown(socket, SD_SEND);
+    if (res != 0) {
+        int wsaErr = ::WSAGetLastError();
+        return getSocketError(wsaErr);
+    }
+
+    return SocketError::Ok;
+}
+
+SocketError SocketImpl::setReadBuf(uint32_t bufferSize) {
+    if (socket == INVALID_SOCKET) {
+        return SocketError::NotInitialized;
+    }
+
+    if (bufferSize > INT_MAX) {
+        bufferSize = INT_MAX;
+    }
+
+    int bufferOpt = (int)bufferSize;
+    int setOptRes = setsockopt(socket, SOL_SOCKET, SO_RCVBUF, (const char*)&bufferOpt, sizeof(int));
+    if (setOptRes != 0) {
+        int wsaErr = ::WSAGetLastError();
+        return getSocketError(wsaErr);
+    }
+
+    return SocketError::Ok;
+}
+
+SocketError SocketImpl::setWriteBuf(uint32_t bufferSize) {
+    if (socket == INVALID_SOCKET) {
+        return SocketError::NotInitialized;
+    }
+
+    if (bufferSize > INT_MAX) {
+        bufferSize = INT_MAX;
+    }
+
+    int bufferOpt = (int)bufferSize;
+    int setOptRes = setsockopt(socket, SOL_SOCKET, SO_SNDBUF, (const char*)&bufferOpt, sizeof(int));
+    if (setOptRes != 0) {
+        int wsaErr = ::WSAGetLastError();
+        return getSocketError(wsaErr);
+    }
+
+    return SocketError::Ok;
+}
