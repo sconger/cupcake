@@ -71,10 +71,10 @@ SockAddr getAddrAny(INet::Protocol family) {
 
     if (family == INet::Protocol::Ipv4) {
         sockaddr_in* addrin = (sockaddr_in*)&storage;
-		IN4ADDR_SETANY(addrin);
+        IN4ADDR_SETANY(addrin);
     } else {
         sockaddr_in6* addrin = (sockaddr_in6*)&storage;
-		IN6ADDR_SETANY(addrin);
+        IN6ADDR_SETANY(addrin);
     }
 
     return SockAddr::fromNative(&storage);
@@ -84,7 +84,7 @@ SockAddr getLoopback(INet::Protocol family, uint16_t port) {
     assert(family != INet::Protocol::Unknown);
 
     sockaddr_storage storage;
-    ::memset(&storage, 0, sizeof(sockaddr_storage));
+    std::memset(&storage, 0, sizeof(sockaddr_storage));
 
     if (family == INet::Protocol::Ipv4) {
         sockaddr_in* addrin = (sockaddr_in*)&storage;
@@ -95,9 +95,9 @@ SockAddr getLoopback(INet::Protocol family, uint16_t port) {
         sockaddr_in6* addrin = (sockaddr_in6*)&storage;
         addrin->sin6_family = AF_INET6;
         addrin->sin6_port = htons(port);
-		addrin->sin6_flowinfo = 0;
+        addrin->sin6_flowinfo = 0;
         addrin->sin6_addr = IN6ADDR_LOOPBACK_INIT;
-		addrin->sin6_scope_id = 0;
+        addrin->sin6_scope_id = 0;
     }
 
     return SockAddr::fromNative(&storage);
@@ -115,7 +115,7 @@ SocketError parseNumeric(const StringRef name, uint16_t port, SockAddr* dest) {
     ::wsprintfW(portBuf, L"%hu", port);
 
     ADDRINFOEXW hints;
-    ::memset(&hints, 0, sizeof(ADDRINFOEXW));
+    std::memset(&hints, 0, sizeof(ADDRINFOEXW));
     hints.ai_flags = AI_NUMERICHOST;
     hints.ai_family = AF_UNSPEC;
     hints.ai_socktype = SOCK_STREAM;
@@ -159,7 +159,7 @@ SocketError addrLookup(SockAddr* dest,
     ::wsprintfW(portBuf, L"%hu", port);
 
     ADDRINFOEXW hints;
-    ::memset(&hints, 0, sizeof(ADDRINFOEXW));
+    std::memset(&hints, 0, sizeof(ADDRINFOEXW));
     hints.ai_socktype = SOCK_STREAM;
     hints.ai_protocol = IPPROTO_TCP;
 

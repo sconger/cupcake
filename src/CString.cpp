@@ -14,7 +14,7 @@ CStringBuf::CStringBuf(const StringRef str) {
     } else {
         strPtr = new char[strLen+1];
     }
-    ::memcpy(strPtr, str.data(), strLen);
+    std::memcpy(strPtr, str.data(), strLen);
     strPtr[strLen] = '\0';
 }
 

@@ -66,7 +66,7 @@ bool test_socket_basic() {
         return false;
     }
 
-    if (::memcmp(readBuffer, "Howdy", 5) != 0) {
+    if (std::memcmp(readBuffer, "Howdy", 5) != 0) {
         testf("Did not read expected string back from socket");
         acceptedSocket.close();
         socket.close();

@@ -26,7 +26,7 @@ String::String(const String& str) {
         setLongCapacity(newCap);
         _long._size = len;
         _long._data = data;
-        ::memcpy(data, otherData, newCap);
+        std::memcpy(data, otherData, newCap);
     }
 }
 
@@ -52,12 +52,12 @@ String::String(const StringRef strRef) {
         _long._data = data;
     }
 
-    ::memcpy(data, strRef.data(), len);
+    std::memcpy(data, strRef.data(), len);
     data[len] = '\0';
 }
 
 String::String(const char* cstr) {
-    size_t len = ::strlen(cstr);
+    size_t len = std::strlen(cstr);
     size_t lenWithNull = len+1;
     char* data;
 
@@ -72,7 +72,7 @@ String::String(const char* cstr) {
         _long._data = data;
     }
 
-    ::memcpy(data, cstr, lenWithNull);
+    std::memcpy(data, cstr, lenWithNull);
 }
 
 String::String(const char* cstr, size_t len) {
@@ -89,7 +89,7 @@ String::String(const char* cstr, size_t len) {
         _long._data = data;
     }
 
-    ::memcpy(data, cstr, len);
+    std::memcpy(data, cstr, len);
     data[len] = '\0';
 }
 
@@ -110,7 +110,7 @@ String& String::operator=(const String& str) {
         setLongCapacity(newCap);
         _long._size = len;
         _long._data = new char[newCap];
-        ::memcpy(_long._data, str._long._data, lenWithNull);
+        std::memcpy(_long._data, str._long._data, lenWithNull);
     } else {
         _short = str._short;
     }
@@ -156,7 +156,7 @@ String& String::operator=(const StringRef strRef) {
         _long._data = data;
     }
 
-    ::memmove(data, strRef.data(), len);
+    std::memmove(data, strRef.data(), len);
     data[len] = '\0';
 
     delete[] oldData;
@@ -169,7 +169,7 @@ String& String::operator=(const char* cstr) {
         delete[] _long._data;
     }
 
-    size_t len = ::strlen(cstr);
+    size_t len = std::strlen(cstr);
     size_t lenWithNull = len+1;
     char* data;
 
@@ -184,7 +184,7 @@ String& String::operator=(const char* cstr) {
         _long._data = data;
     }
 
-    ::memcpy(data, cstr, lenWithNull);
+    std::memcpy(data, cstr, lenWithNull);
 
     return *this;
 }
@@ -208,20 +208,20 @@ void String::append_raw(const char* appendData, size_t dataLen)
     char* data = getPtr();
 
     if (len + dataLen < capacity) {
-        ::memcpy(data+len, appendData, dataLen);
+        std::memcpy(data+len, appendData, dataLen);
         data[len+dataLen] = '\0';
         setSize(len+dataLen);
     } else {
         size_t newLen = len + dataLen;
         size_t newCapacity = getValidCapacity(newLen * 2);
         char* newData = new char[newCapacity];
-        ::memcpy(newData, data, len);
+        std::memcpy(newData, data, len);
 
         if (isLong()) {
             delete[] _long._data;
         }
 
-        ::memcpy(newData + len, appendData, dataLen);
+        std::memcpy(newData + len, appendData, dataLen);
         newData[len + dataLen] = '\0';
 
         setLongCapacity(newCapacity);
@@ -237,19 +237,19 @@ void String::append_cstr(const char* cstr, size_t cstrLen)
     char* data = getPtr();
 
     if (len + cstrLen < capacity) {
-        ::memcpy(data+len, cstr, cstrLen+1);
+        std::memcpy(data+len, cstr, cstrLen+1);
         setSize(len+cstrLen);
     } else {
         size_t newLen = len + cstrLen + 1;
         size_t newCapacity = getValidCapacity(newLen * 2);
         char* newData = new char[newCapacity];
-        ::memcpy(newData, data, len);
+        std::memcpy(newData, data, len);
 
         if (isLong()) {
             delete[] _long._data;
         }
 
-        ::memcpy(newData + len, cstr, cstrLen+1);
+        std::memcpy(newData + len, cstr, cstrLen+1);
 
         setLongCapacity(newCapacity);
         _long._size = newLen;
@@ -282,15 +282,15 @@ int32_t String::compare(const StringRef strRef) const {
     // Emulate behavior of strcmp. That is, do comparison as if the StringRef
     // was null terminated.
     if (len == strRefLen) {
-        return ::memcmp(localData, strRefData, len);
+        return std::memcmp(localData, strRefData, len);
     } else if (len < strRefLen) {
-        int32_t partial = ::memcmp(localData, strRefData, len);
+        int32_t partial = std::memcmp(localData, strRefData, len);
 
         if (partial != 0)
             return partial;
         return 1;
     } else {
-        int32_t partial = ::memcmp(localData, strRefData, strRefLen);
+        int32_t partial = std::memcmp(localData, strRefData, strRefLen);
 
         if (partial != 0)
             return partial;
@@ -304,7 +304,7 @@ bool String::equals(const StringRef strRef) const {
         return false;
     }
 
-    return ::memcmp(data(), strRef.data(), len) == 0;
+    return std::memcmp(data(), strRef.data(), len) == 0;
 }
 
 ptrdiff_t String::indexOf(const StringRef strRef) const {
@@ -368,7 +368,7 @@ void String::reserve(size_t size) {
     char* newBuffer = new char[newCapacity];
 
     size_t len = length();
-    ::memcpy(newBuffer, data(), len+1); // Always at least a null
+    std::memcpy(newBuffer, data(), len+1); // Always at least a null
 
     if (isLong()) {
         delete[] _long._data;
@@ -506,7 +506,7 @@ const String operator+(const String& str, const StringRef strRef) {
 
 const String operator+(const char* cstr, const String& str) {
     String ret;
-    size_t cstrLen = ::strlen(cstr);
+    size_t cstrLen = std::strlen(cstr);
     ret.reserve(cstrLen + str.length());
     ret.append(cstr, cstrLen);
     ret.append(str);
@@ -515,7 +515,7 @@ const String operator+(const char* cstr, const String& str) {
 
 const String operator+(const String& str, const char* cstr) {
     String ret;
-    size_t cstrLen = ::strlen(cstr);
+    size_t cstrLen = std::strlen(cstr);
     ret.reserve(str.length() + cstrLen);
     ret.append(str);
     ret.append(cstr, cstrLen);
@@ -539,35 +539,35 @@ const String operator+(const String& str, char c) {
 }
 
 bool operator<(const String& str, const char* cstr) {
-    return ::strcmp(str.data(), cstr) < 0;
+    return std::strcmp(str.data(), cstr) < 0;
 }
 
 bool operator<(const char* cstr, const String& str) {
-    return ::strcmp(cstr, str.data()) < 0;
+    return std::strcmp(cstr, str.data()) < 0;
 }
 
 bool operator<=(const String& str, const char* cstr) {
-    return ::strcmp(str.data(), cstr) <= 0;
+    return std::strcmp(str.data(), cstr) <= 0;
 }
 
 bool operator<=(const char* cstr, const String& str) {
-    return ::strcmp(cstr, str.data()) <= 0;
+    return std::strcmp(cstr, str.data()) <= 0;
 }
 
 bool operator>(const String& str, const char* cstr) {
-    return ::strcmp(str.data(), cstr) > 0;
+    return std::strcmp(str.data(), cstr) > 0;
 }
 
 bool operator>(const char* cstr, const String& str) {
-    return ::strcmp(cstr, str.data()) > 0;
+    return std::strcmp(cstr, str.data()) > 0;
 }
 
 bool operator>=(const String& str, const char* cstr) {
-    return ::strcmp(str.data(), cstr) >= 0;
+    return std::strcmp(str.data(), cstr) >= 0;
 }
 
 bool operator>=(const char* cstr, const String& str) {
-    return ::strcmp(cstr, str.data()) >= 0;
+    return std::strcmp(cstr, str.data()) >= 0;
 }
 
 bool operator==(const char* cstr, const String& str) {

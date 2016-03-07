@@ -20,13 +20,13 @@ Result<String, SocketError> getHostName() {
 
         switch (wsaErr) {
         case WSANOTINITIALISED:
-			err = SocketError::NotInitialized;
+            err = SocketError::NotInitialized;
             break;
         case WSAENETDOWN:
-			err = SocketError::NetworkDown;
+            err = SocketError::NetworkDown;
             break;
         default:
-			err = SocketError::Unknown;
+            err = SocketError::Unknown;
         }
 
         return Result<String, SocketError>(err);

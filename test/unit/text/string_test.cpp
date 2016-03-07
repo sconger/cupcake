@@ -14,15 +14,15 @@ bool test_string_create() {
     // Raw array
     {
         String rawInit("1234567890", 5);
-        if (::strcmp(rawInit.c_str(), "12345") != 0) {
+        if (std::strcmp(rawInit.c_str(), "12345") != 0) {
             testf("Initialization of String with raw buffer did not produce expected value: 12345");
             return false;
         }
     }
 
     {
-        String rawInitLong(longStr, ::strlen(longStr));
-        if (::strcmp(rawInitLong.c_str(), longStr) != 0) {
+        String rawInitLong(longStr, std::strlen(longStr));
+        if (std::strcmp(rawInitLong.c_str(), longStr) != 0) {
             testf("Initialization of String with long raw buffer did not produce expected value: %s",
                     longStr);
         }
@@ -31,7 +31,7 @@ bool test_string_create() {
     // C string
     {
         String cInit("12345");
-        if (::strcmp(cInit.c_str(), "12345") != 0) {
+        if (std::strcmp(cInit.c_str(), "12345") != 0) {
             testf("Initialization of String with c-string did not produce expected value: 12345");
             return false;
         }
@@ -39,7 +39,7 @@ bool test_string_create() {
 
     {
         String cInitLong(longStr);
-        if (::strcmp(cInitLong.c_str(), longStr) != 0) {
+        if (std::strcmp(cInitLong.c_str(), longStr) != 0) {
             testf("Initialization of String with long c-string did not produce expected value: %s",
                     longStr);
         }
@@ -49,7 +49,7 @@ bool test_string_create() {
     {
         String str("12345");
         String stringInit(str);
-        if (::strcmp(stringInit.c_str(), "12345") != 0) {
+        if (std::strcmp(stringInit.c_str(), "12345") != 0) {
             testf("Initialization of String with String did not produce expected value: 12345");
             return false;
         }
@@ -58,7 +58,7 @@ bool test_string_create() {
     {
         String strLong(longStr);
         String stringInitLong(strLong);
-        if (::strcmp(stringInitLong.c_str(), longStr) != 0) {
+        if (std::strcmp(stringInitLong.c_str(), longStr) != 0) {
             testf("Initialization of String with long String did not produce expected value: %s",
                     longStr);
         }
@@ -67,7 +67,7 @@ bool test_string_create() {
     // StringRef object
     {
         String stringrefInit(StringRef("12345"));
-        if (::strcmp(stringrefInit.c_str(), "12345") != 0) {
+        if (std::strcmp(stringrefInit.c_str(), "12345") != 0) {
             testf("Initialization of String with StringRef did not produce expected value: 12345");
             return false;
         }
@@ -75,7 +75,7 @@ bool test_string_create() {
 
     {
         String stringrefInitLong{StringRef(longStr)};
-        if (::strcmp(stringrefInitLong.c_str(), longStr) != 0) {
+        if (std::strcmp(stringrefInitLong.c_str(), longStr) != 0) {
             testf("Initialization of String with long StringRef did not produce expected value: %s",
                     longStr);
         }
@@ -85,7 +85,7 @@ bool test_string_create() {
     {
         String toMove("12345");
         String moveInit(std::move(toMove));
-        if (::strcmp(moveInit.c_str(), "12345") != 0) {
+        if (std::strcmp(moveInit.c_str(), "12345") != 0) {
             testf("Initialization of String by move did not produce expected value: 12345");
             return false;
         }
@@ -93,7 +93,7 @@ bool test_string_create() {
             testf("Initialization of String by move did not clear moved string");
             return false;
         }
-        if (::strcmp(toMove.c_str(), "") != 0) {
+        if (std::strcmp(toMove.c_str(), "") != 0) {
             testf("Initialization of String by move did not clear moved string");
             return false;
         }
@@ -102,7 +102,7 @@ bool test_string_create() {
     {
         String toMoveLong(longStr);
         String moveInitLong(std::move(toMoveLong));
-        if (::strcmp(moveInitLong.c_str(), longStr) != 0) {
+        if (std::strcmp(moveInitLong.c_str(), longStr) != 0) {
             testf("Initialization of String with long String move did not produce expected value: %s",
                     longStr);
         }
@@ -110,7 +110,7 @@ bool test_string_create() {
             testf("Initialization of String by long String move did not clear moved string");
             return false;
         }
-        if (::strcmp(toMoveLong.c_str(), "") != 0) {
+        if (std::strcmp(toMoveLong.c_str(), "") != 0) {
             testf("Initialization of String by move did not clear moved string");
             return false;
         }

@@ -18,71 +18,71 @@
 // For whatever reason, calls like AcceptEx and ConnectEx giver non-WSA error
 // values after you wait for their completion. Just added them to the switch.
 static SocketError getSocketError(int errVal) {
-	switch (errVal) {
-	case WSANOTINITIALISED:
-	case WSAEINVALIDPROVIDER:
-	case WSAEINVALIDPROCTABLE:
-		return SocketError::NotInitialized;
-	case WSAENETDOWN:
-		return SocketError::NetworkDown;
-	case WSAEADDRINUSE:
-		return SocketError::AddressInUse;
-	case WSAEACCES:
-		return SocketError::AccessDenied;
-	case WSAEALREADY:
-		return SocketError::ConnectionAlreadyInProgress;
-	case WSAEADDRNOTAVAIL:
-		return SocketError::AddressNotAvailable;
-	case WSAEOPNOTSUPP:
-	case WSAEAFNOSUPPORT:
-	case WSAEPROTONOSUPPORT:
-	case WSAESOCKTNOSUPPORT:
-		return SocketError::NotSupported;
-	case WSAECONNREFUSED:
-	case ERROR_CONNECTION_REFUSED:
-		return SocketError::ConnectionRefused;
-	case WSAEFAULT:
-		return SocketError::BadAddress;
-	case WSAEINVAL:
-	case WSAEPROTOTYPE:
-	case ERROR_INVALID_NETNAME: // Invalid socket addr
-	case WSAENOPROTOOPT: // Bad setsocketopt argument
-		return SocketError::InvalidArgument;
-	case WSAEISCONN:
-		return SocketError::AlreadyConnected;
-	case WSAENETUNREACH:
-	case ERROR_NETWORK_UNREACHABLE:
-		return SocketError::NetworkUnreachable;
-	case WSAEHOSTUNREACH:
-	case ERROR_HOST_UNREACHABLE:
-		return SocketError::HostUnreachable;
-	case WSAENOBUFS:
-		return SocketError::NoBufferSpace;
-	case WSAENOTSOCK:
+    switch (errVal) {
+    case WSANOTINITIALISED:
+    case WSAEINVALIDPROVIDER:
+    case WSAEINVALIDPROCTABLE:
+        return SocketError::NotInitialized;
+    case WSAENETDOWN:
+        return SocketError::NetworkDown;
+    case WSAEADDRINUSE:
+        return SocketError::AddressInUse;
+    case WSAEACCES:
+        return SocketError::AccessDenied;
+    case WSAEALREADY:
+        return SocketError::ConnectionAlreadyInProgress;
+    case WSAEADDRNOTAVAIL:
+        return SocketError::AddressNotAvailable;
+    case WSAEOPNOTSUPP:
+    case WSAEAFNOSUPPORT:
+    case WSAEPROTONOSUPPORT:
+    case WSAESOCKTNOSUPPORT:
+        return SocketError::NotSupported;
+    case WSAECONNREFUSED:
+    case ERROR_CONNECTION_REFUSED:
+        return SocketError::ConnectionRefused;
+    case WSAEFAULT:
+        return SocketError::BadAddress;
+    case WSAEINVAL:
+    case WSAEPROTOTYPE:
+    case ERROR_INVALID_NETNAME: // Invalid socket addr
+    case WSAENOPROTOOPT: // Bad setsocketopt argument
+        return SocketError::InvalidArgument;
+    case WSAEISCONN:
+        return SocketError::AlreadyConnected;
+    case WSAENETUNREACH:
+    case ERROR_NETWORK_UNREACHABLE:
+        return SocketError::NetworkUnreachable;
+    case WSAEHOSTUNREACH:
+    case ERROR_HOST_UNREACHABLE:
+        return SocketError::HostUnreachable;
+    case WSAENOBUFS:
+        return SocketError::NoBufferSpace;
+    case WSAENOTSOCK:
     case ERROR_INVALID_HANDLE:
-		return SocketError::InvalidHandle;
-	case WSAEMFILE:
-		return SocketError::TooManyHandles;
-	case WSAETIMEDOUT:
-	case ERROR_SEM_TIMEOUT: // Timeout
-		return SocketError::TimedOut;
-	case WSAECONNABORTED:
-		return SocketError::ConnectionAborted;
-	case WSAECONNRESET:
-		return SocketError::ConnectionReset;
-	case WSAEMSGSIZE:
-		return SocketError::MessageTooLong;
-	case WSAENETRESET:
-		return SocketError::NetworkReset;
-	case WSAENOTCONN:
-		return SocketError::NotConnected;
-	case WSAESHUTDOWN:
-		return SocketError::ConnectionShutdown;
-	case ERROR_OPERATION_ABORTED: // Socket close
-		return SocketError::OperationAborted;
-	default:
-		return SocketError::Unknown;
-	}
+        return SocketError::InvalidHandle;
+    case WSAEMFILE:
+        return SocketError::TooManyHandles;
+    case WSAETIMEDOUT:
+    case ERROR_SEM_TIMEOUT: // Timeout
+        return SocketError::TimedOut;
+    case WSAECONNABORTED:
+        return SocketError::ConnectionAborted;
+    case WSAECONNRESET:
+        return SocketError::ConnectionReset;
+    case WSAEMSGSIZE:
+        return SocketError::MessageTooLong;
+    case WSAENETRESET:
+        return SocketError::NetworkReset;
+    case WSAENOTCONN:
+        return SocketError::NotConnected;
+    case WSAESHUTDOWN:
+        return SocketError::ConnectionShutdown;
+    case ERROR_OPERATION_ABORTED: // Socket close
+        return SocketError::OperationAborted;
+    default:
+        return SocketError::Unknown;
+    }
 }
 
 class CompletionResult {
@@ -151,7 +151,7 @@ public:
         coroutineHandle(nullptr),
         completionResult(nullptr),
         isAccept(false) {
-        ::memset(&overlapped, 0, sizeof(OVERLAPPED));
+        std::memset(&overlapped, 0, sizeof(OVERLAPPED));
     }
 
     OverlappedData(SOCKET socket,
@@ -165,7 +165,7 @@ public:
         ptpIo(ptpIo),
         preparedSocket(preparedSocket),
         addrBuffer(addrBuffer) {
-        ::memset(&overlapped, 0, sizeof(OVERLAPPED));
+        std::memset(&overlapped, 0, sizeof(OVERLAPPED));
     }
 
     void handleCompletion(ULONG ioResult, ULONG_PTR numberOfBytesTransferred) {
@@ -679,14 +679,14 @@ SocketError SocketImpl::bind(const SockAddr& sockAddr) {
         return getSocketError(::WSAGetLastError());
     }
 
-	// And then we need to fetch back the bound addr/port
-	int nameLen = sizeof(SOCKADDR_STORAGE);
-	int nameRes = ::getsockname(socket, (sockaddr*)&storage, &nameLen);
-	if (nameRes != 0) {
+    // And then we need to fetch back the bound addr/port
+    int nameLen = sizeof(SOCKADDR_STORAGE);
+    int nameRes = ::getsockname(socket, (sockaddr*)&storage, &nameLen);
+    if (nameRes != 0) {
         return getSocketError(::WSAGetLastError());
-	}
+    }
 
-	localAddr = SockAddr::fromNative(&storage);
+    localAddr = SockAddr::fromNative(&storage);
 
     return SocketError::Ok;
 }
@@ -749,16 +749,16 @@ SocketError SocketImpl::connect(const SockAddr& sockAddr) {
         return err;
     }
 
-	// For reasons that I presume have to do with DisconnectEx, ConnectEx
-	// requires a bound socket
-	SOCKADDR_STORAGE addrAny;
-	addrAny.ss_family = storage.ss_family;
-	INETADDR_SETANY((sockaddr*)&addrAny);
+    // For reasons that I presume have to do with DisconnectEx, ConnectEx
+    // requires a bound socket
+    SOCKADDR_STORAGE addrAny;
+    addrAny.ss_family = storage.ss_family;
+    INETADDR_SETANY((sockaddr*)&addrAny);
 
-	int bindRes = ::bind(socket, (const sockaddr*)&addrAny, sizeof(SOCKADDR_STORAGE));
-	if (bindRes != 0) {
-		return getSocketError(::WSAGetLastError());
-	}
+    int bindRes = ::bind(socket, (const sockaddr*)&addrAny, sizeof(SOCKADDR_STORAGE));
+    if (bindRes != 0) {
+        return getSocketError(::WSAGetLastError());
+    }
 
     SocketError res;
     connect_co(sockAddr, &res).get();

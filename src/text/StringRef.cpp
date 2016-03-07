@@ -28,7 +28,7 @@ StringRef::StringRef(const String& str) :
 
 StringRef::StringRef(const char* str) :
     strData(str),
-    len(::strlen(str))
+    len(std::strlen(str))
 {}
 
 StringRef::StringRef(const char* str, size_t length) :
@@ -61,15 +61,15 @@ int32_t StringRef::compare(const StringRef& strRef) const {
     // Emulate behavior of strcmp. That is, do comparison as if this was
     // nul terminated.
     if (len == strRef.len) {
-        return ::memcmp(strData, strRef.strData, len);
+        return std::memcmp(strData, strRef.strData, len);
     } else if (len < strRef.len) {
-        int32_t partial = ::memcmp(strData, strRef.strData, len);
+        int32_t partial = std::memcmp(strData, strRef.strData, len);
 
         if (partial != 0)
             return partial;
         return 1;
     } else {
-        int32_t partial = ::memcmp(strData, strRef.strData, strRef.len);
+        int32_t partial = std::memcmp(strData, strRef.strData, strRef.len);
 
         if (partial != 0)
             return partial;
@@ -96,7 +96,7 @@ bool StringRef::equals(const StringRef& strRef) const {
     if (len != strRef.len)
         return false;
 
-    return ::memcmp(strData, strRef.strData, len) == 0;
+    return std::memcmp(strData, strRef.strData, len) == 0;
 }
 
 int32_t StringRef::engCompareIgnoreCase(const StringRef& strRef) const {
@@ -294,7 +294,7 @@ ptrdiff_t StringRef::lastIndexOf(const StringRef& strRef, size_t endIndex) const
     const char* searchPtr = searchStart + endIndex - strRefLen;
 
     while (searchPtr >= searchStart) {
-        if (::memcmp(searchPtr, strRefData, strRefLen) == 0) {
+        if (std::memcmp(searchPtr, strRefData, strRefLen) == 0) {
             return searchPtr - searchStart;
         }
 
@@ -321,14 +321,14 @@ bool StringRef::startsWith(const StringRef& strRef) const {
     if (len < strRef.len)
         return false;
 
-    return ::memcmp(strData, strRef.strData, strRef.len) == 0;
+    return std::memcmp(strData, strRef.strData, strRef.len) == 0;
 }
 
 bool StringRef::endsWith(const StringRef& strRef) const {
     if (len < strRef.len)
         return false;
 
-    return ::memcmp(strData + len - strRef.len, strRef.strData, strRef.len) == 0;
+    return std::memcmp(strData + len - strRef.len, strRef.strData, strRef.len) == 0;
 }
 
 bool operator<(const StringRef& strRef1, const StringRef& strRef2) {
