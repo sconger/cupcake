@@ -26,8 +26,14 @@ SockAddr& SockAddr::operator=(const SockAddr& other) {
     return *this;
 }
 
-int SockAddr::getFamily() const {
-    return storage.ss_family;
+INet::Protocol SockAddr::getFamily() const {
+    if (storage.ss_family == AF_INET) {
+        return INet::Protocol::Ipv4;
+    } else if (storage.ss_family == AF_INET6) {
+        return INet::Protocol::Ipv6;
+    } else {
+        return INet::Protocol::Unknown;
+    }
 }
 
 uint16_t SockAddr::getPort() const {

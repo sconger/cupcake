@@ -56,7 +56,7 @@ class HttpResponse {
     virtual HttpOutputStream& getOutputStream() = 0;
 };
 
-typedef std::function<void(HttpRequest& request, HttpResponse& response)> httpHandler;
+typedef std::function<void(HttpRequest& request, HttpResponse& response)> HttpHandler;
 
 }
 

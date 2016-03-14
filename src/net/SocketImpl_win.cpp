@@ -738,8 +738,18 @@ Result<Socket, SocketError> SocketImpl::accept() {
     SOCKET preparedSocket;
     PTP_IO preparedPtpIo;
 
+    int family;
+
+    if (localAddr.getFamily() == INet::Protocol::Ipv4) {
+        family = AF_INET;
+    } else if (localAddr.getFamily() == INet::Protocol::Ipv6) {
+        family = AF_INET6;
+    } else {
+        return Result<Socket, SocketError>(SocketError::InvalidArgument);
+    }
+
     // Initialize a socket to pass to AcceptEx
-    SocketError err = initSocket(&preparedSocket, &preparedPtpIo, localAddr.getFamily());
+    SocketError err = initSocket(&preparedSocket, &preparedPtpIo, family);
     if (err != SocketError::Ok) {
         return Result<Socket, SocketError>(err);
     }

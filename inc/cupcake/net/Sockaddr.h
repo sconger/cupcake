@@ -28,7 +28,7 @@ public:
 
     String toString() const;
 
-    int getFamily() const;
+    INet::Protocol getFamily() const;
     uint16_t getPort() const;
 
 	bool isAddrAny() const;
