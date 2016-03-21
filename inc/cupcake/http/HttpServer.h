@@ -3,10 +3,13 @@
 #define CUPCAKE_HTTP_SERVER_H
 
 #include "cupcake/http/Http.h"
+#include "cupcake/http/HttpError.h"
 #include "cupcake/net/Sockaddr.h"
-#include "cupcake/net/Socket.h"
-#include "cupcake/net/SocketError.h"
 #include "cupcake/text/StringRef.h"
+
+#include "cupcake_priv/http/StreamSource.h"
+
+#include <memory>
 
 namespace Cupcake {
 
@@ -22,7 +25,8 @@ public:
 
     bool addHandler(const StringRef path, HttpHandler handler);
 
-    SocketError start(const SockAddr& sockAddr);
+    // TODO: Add other variants
+    HttpError start(const SockAddr& sockAddr);
 
     void shutdown();
 
@@ -30,7 +34,9 @@ private:
     HttpServer(const HttpServer&) = delete;
     HttpServer& operator=(const HttpServer&) = delete;
 
-    Socket socket;
+    HttpError acceptLoop();
+
+    std::unique_ptr<StreamSource> streamSource;
     bool started;
 };
 

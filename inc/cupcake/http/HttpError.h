@@ -12,6 +12,7 @@ namespace Cupcake {
 enum class HttpError : uint32_t {
     Ok = 0,
 
+    InvalidState,
     ConnectionClosed,
     IoError,
 };

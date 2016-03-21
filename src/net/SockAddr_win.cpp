@@ -12,6 +12,7 @@
 #include <Ws2tcpip.h>
 #include <Mstcpip.h>
 
+using namespace Cupcake;
 
 SockAddr::SockAddr() {
     std::memset(&storage, 0, sizeof(SOCKADDR_STORAGE));

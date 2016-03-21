@@ -16,6 +16,8 @@
 #include <Windows.h>
 #include <Ws2tcpip.h>
 
+namespace Cupcake {
+
 static
 SocketError getAddrInfoError(int wsaErr) {
     switch (wsaErr) {
@@ -228,3 +230,5 @@ SocketError asyncLookup(void* context,
 }
 
 } // End namespace Addrinfo
+
+} // End namespace Cupcake

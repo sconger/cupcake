@@ -6,10 +6,12 @@
 #elif defined(__APPLE__)
 
 #elif defined(_WIN32)
-#include "cupcake_priv/SocketImpl_win.h"
+#include "cupcake_priv/net/SocketImpl_win.h"
 #endif
 
-Socket::Socket() : impl(new SocketImpl()) {}
+using namespace Cupcake;
+
+Socket::Socket() : impl(nullptr) {}
 
 Socket::Socket(Socket&& other) {
     impl = other.impl;
@@ -31,11 +33,12 @@ Socket::~Socket() {
 }
 
 SocketError Socket::init(INet::Protocol prot) {
+    impl = new SocketImpl();
     return impl->init(prot);
 }
 
-void Socket::close() {
-    impl->close();
+SocketError Socket::close() {
+    return impl->close();
 }
 
 SockAddr Socket::getLocalAddress() const {
@@ -58,7 +61,7 @@ SocketError Socket::listen(uint32_t queue) {
     return impl->listen(queue);
 }
 
-Result<Socket, SocketError> Socket::accept() {
+std::tuple<Socket, SocketError> Socket::accept() {
     return impl->accept();
 }
 
@@ -66,11 +69,11 @@ SocketError Socket::connect(const SockAddr& sockAddr) {
     return impl->connect(sockAddr);
 }
 
-Result<uint32_t, SocketError> Socket::read(char* buffer, uint32_t bufferLen) {
+std::tuple<uint32_t, SocketError> Socket::read(char* buffer, uint32_t bufferLen) {
     return impl->read(buffer, bufferLen);
 }
 
-Result<uint32_t, SocketError> Socket::write(const char* buffer, uint32_t bufferLen) {
+std::tuple<uint32_t, SocketError> Socket::write(const char* buffer, uint32_t bufferLen) {
     return impl->write(buffer, bufferLen);
 }
 

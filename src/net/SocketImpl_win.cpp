@@ -7,13 +7,14 @@
 #include "cupcake/net/Socket.h"
 
 #include "cupcake_priv/Cupcake_priv_win.h"
-#include "cupcake_priv/SocketImpl_win.h"
+#include "cupcake_priv/net/SocketImpl_win.h"
 
 #include <Ws2tcpip.h>
 #include <Mstcpip.h>
 
 #include <experimental/resumable>
 
+using namespace Cupcake;
 
 // For whatever reason, calls like AcceptEx and ConnectEx giver non-WSA error
 // values after you wait for their completion. Just added them to the switch.
@@ -334,14 +335,14 @@ public:
         return true;
     }
 
-    Result<Socket, SocketError> await_resume() {
+    std::tuple<Socket, SocketError> await_resume() {
         if (socketError != SocketError::Ok) {
-            return Result<Socket, SocketError>(socketError);
+            return std::make_tuple(Socket(), socketError);
         } else if (completionResult.error != ERROR_SUCCESS) {
-            return Result<Socket, SocketError>(getSocketError((int)completionResult.error));
+            return std::make_tuple(Socket(), getSocketError((int)completionResult.error));
         } else {
             onAccept();
-            return Result<Socket, SocketError>(Socket(newSocket));
+            return std::make_tuple(Socket(newSocket), SocketError::Ok);
         }
     }
 
@@ -532,15 +533,15 @@ public:
         return true;
     }
 
-    Result<uint32_t, SocketError> await_resume() {
+    std::tuple<uint32_t, SocketError> await_resume() {
         if (socketError != SocketError::Ok) {
-            return Result<uint32_t, SocketError>(socketError);
+            return std::make_tuple(0, socketError);
         } else if (bytesXfer) {
-            return Result<uint32_t, SocketError>(bytesXfer);
+            return std::make_tuple(bytesXfer, SocketError::Ok);
         } else if (completionResult.error != ERROR_SUCCESS) {
-            return Result<uint32_t, SocketError>(getSocketError((int)completionResult.error));
+            return std::make_tuple(0, getSocketError((int)completionResult.error));
         } else {
-            return Result<uint32_t, SocketError>((uint32_t)completionResult.bytesTransfered);
+            return std::make_tuple((uint32_t)completionResult.bytesTransfered, SocketError::Ok);
         }
     }
 
@@ -606,15 +607,15 @@ public:
         return true;
     }
 
-    Result<uint32_t, SocketError> await_resume() {
+    std::tuple<uint32_t, SocketError> await_resume() {
         if (socketError != SocketError::Ok) {
-            return Result<uint32_t, SocketError>(socketError);
+            return std::make_tuple(0, socketError);
         } else if (bytesXfer) {
-            return Result<uint32_t, SocketError>(bytesXfer);
+            return std::make_tuple(bytesXfer, SocketError::Ok);
         } else if (completionResult.error != ERROR_SUCCESS) {
-            return Result<uint32_t, SocketError>(getSocketError((int)completionResult.error));
+            return std::make_tuple(0, getSocketError((int)completionResult.error));
         } else {
-            return Result<uint32_t, SocketError>((uint32_t)completionResult.bytesTransfered);
+            return std::make_tuple((uint32_t)completionResult.bytesTransfered, SocketError::Ok);
         }
     }
 
@@ -658,11 +659,16 @@ SocketError SocketImpl::init(INet::Protocol prot) {
     return initSocket(&socket, &ptpIo, family);
 }
 
-void SocketImpl::close() {
+SocketError SocketImpl::close() {
     if (socket != INVALID_SOCKET) {
-        ::closesocket(socket);
+        int closeRes = ::closesocket(socket);
         socket = INVALID_SOCKET;
+        if (closeRes == SOCKET_ERROR) {
+            return getSocketError(::WSAGetLastError());
+        }
     }
+
+    return SocketError::Ok;
 }
 
 SockAddr SocketImpl::getLocalAddress() const {
@@ -726,13 +732,13 @@ SocketError SocketImpl::listen(uint32_t queue) {
     return SocketError::Ok;
 }
 
-std::future<void> SocketImpl::accept_co(SOCKET preparedSocket, PTP_IO preparedPtpIo, Result<Socket, SocketError>* res) {
+std::future<void> SocketImpl::accept_co(SOCKET preparedSocket, PTP_IO preparedPtpIo, std::tuple<Socket, SocketError>* res) {
     (*res) = await AcceptAwaiter(this, preparedSocket, preparedPtpIo);
 }
 
-Result<Socket, SocketError> SocketImpl::accept() {
+std::tuple<Socket, SocketError> SocketImpl::accept() {
     if (socket == INVALID_SOCKET) {
-        return Result<Socket, SocketError>(SocketError::NotInitialized);
+        return std::make_tuple(Socket(), SocketError::NotInitialized);
     }
 
     SOCKET preparedSocket;
@@ -745,16 +751,16 @@ Result<Socket, SocketError> SocketImpl::accept() {
     } else if (localAddr.getFamily() == INet::Protocol::Ipv6) {
         family = AF_INET6;
     } else {
-        return Result<Socket, SocketError>(SocketError::InvalidArgument);
+        return std::make_tuple(Socket(), SocketError::InvalidArgument);
     }
 
     // Initialize a socket to pass to AcceptEx
     SocketError err = initSocket(&preparedSocket, &preparedPtpIo, family);
     if (err != SocketError::Ok) {
-        return Result<Socket, SocketError>(err);
+        return std::make_tuple(Socket(), err);
     }
 
-    Result<Socket, SocketError> res(SocketError::Ok);
+    std::tuple<Socket, SocketError> res(Socket(), SocketError::Ok);
     accept_co(preparedSocket, preparedPtpIo, &res).get();
     return std::move(res);
 }
@@ -787,30 +793,30 @@ SocketError SocketImpl::connect(const SockAddr& sockAddr) {
     return res;
 }
 
-std::future<void> SocketImpl::read_co(char* buffer, uint32_t bufferLen, Result<uint32_t, SocketError>* res) {
+std::future<void> SocketImpl::read_co(char* buffer, uint32_t bufferLen, std::tuple<uint32_t, SocketError>* res) {
     (*res) = await ReadAwaiter(this, buffer, bufferLen);
 }
 
-Result<uint32_t, SocketError> SocketImpl::read(char* buffer, uint32_t bufferLen) {
+std::tuple<uint32_t, SocketError> SocketImpl::read(char* buffer, uint32_t bufferLen) {
     if (socket == INVALID_SOCKET) {
-        return Result<uint32_t, SocketError>(SocketError::NotInitialized);
+        return std::make_tuple(0, SocketError::NotInitialized);
     }
 
-    Result<uint32_t, SocketError> res(SocketError::Ok);
+    std::tuple<uint32_t, SocketError> res(0, SocketError::Ok);
     read_co(buffer, bufferLen, &res).get();
     return res;
 }
 
-std::future<void> SocketImpl::write_co(const char* buffer, uint32_t bufferLen, Result<uint32_t, SocketError>* res) {
+std::future<void> SocketImpl::write_co(const char* buffer, uint32_t bufferLen, std::tuple<uint32_t, SocketError>* res) {
     (*res) = await WriteAwaiter(this, buffer, bufferLen);
 }
 
-Result<uint32_t, SocketError> SocketImpl::write(const char* buffer, uint32_t bufferLen) {
+std::tuple<uint32_t, SocketError> SocketImpl::write(const char* buffer, uint32_t bufferLen) {
     if (socket == INVALID_SOCKET) {
-        return Result<uint32_t, SocketError>(SocketError::NotInitialized);
+        return std::make_tuple(0, SocketError::NotInitialized);
     }
 
-    Result<uint32_t, SocketError> res(SocketError::Ok);
+    std::tuple<uint32_t, SocketError> res(0, SocketError::Ok);
     write_co(buffer, bufferLen, &res).get();
     return res;
 }

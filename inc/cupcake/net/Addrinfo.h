@@ -5,6 +5,9 @@
 #include "cupcake/net/SockAddr.h"
 #include "cupcake/net/SocketError.h"
 #include "cupcake/text/StringRef.h"
+
+namespace Cupcake {
+
 /*
  * Address lookup related functionality
  */
@@ -33,6 +36,8 @@ SocketError asyncLookup(void* context,
                         uint16_t port,
                         INet::Protocol prot,
                         const lookupCallback& callback);
+}
+
 }
 
 #endif // CUPCAKE_ADDRINFO_H

@@ -4,19 +4,25 @@
 
 #include "cupcake/net/SocketError.h"
 #include "cupcake/text/String.h"
-#include "cupcake/util/Result.h"
 
-namespace INet
+#include <tuple>
+
+namespace Cupcake {
+
+namespace INet {
+
+// Generic enum for "IPv4 or IPv6" distinctions
+enum class Protocol
 {
-    // Generic enum for "IPv4 or IPv6" distinctions
-    enum class Protocol
-    {
-        Unknown,
-        Ipv4,
-        Ipv6
-    };
-
-    Result<String, SocketError> getHostName();
+    Unknown,
+    Ipv4,
+    Ipv6
 };
+
+std::tuple<String, SocketError> getHostName();
+
+};
+
+}
 
 #endif // CUPCAKE_INET_H

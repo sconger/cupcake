@@ -7,9 +7,11 @@
 
 #include <Winsock2.h>
 
+namespace Cupcake {
+
 namespace INet {
 
-Result<String, SocketError> getHostName() {
+std::tuple<String, SocketError> getHostName() {
     char buffer[256];
 
     int res = ::gethostname(buffer, sizeof(buffer));
@@ -29,10 +31,12 @@ Result<String, SocketError> getHostName() {
             err = SocketError::Unknown;
         }
 
-        return Result<String, SocketError>(err);
+        return std::make_tuple(String(), err);
     }
 
-    return Result<String, SocketError>(buffer);
+    return std::make_tuple(buffer, SocketError::Ok);
 }
 
-} // End namespace Inet
+}
+
+}

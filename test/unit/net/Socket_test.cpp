@@ -6,8 +6,11 @@
 #include "cupcake/net/Socket.h"
 #include "cupcake/util/Cleaner.h"
 
+#include <mutex>
 #include <thread>
 #include <vector>
+
+using namespace Cupcake;
 
 bool test_socket_basic() {
     SocketError err;
@@ -50,29 +53,26 @@ bool test_socket_basic() {
             return;
         }
 
-        Result<uint32_t, SocketError> res = connectSocket.write("Howdy", 5);
-        if (!res.ok()) {
-            writeErr = res.error();
-        }
-
+        std::tie(std::ignore, writeErr) = connectSocket.write("Howdy", 5);
         connectSocket.close();
     });
 
-    Result<Socket, SocketError> acceptRes = socket.accept();
-    if (!acceptRes.ok()) {
-        testf("Failed to accept socket with: %d", acceptRes.error());
+    Socket acceptedSocket;
+    std::tie(acceptedSocket, err) = socket.accept();
+    if (err != SocketError::Ok) {
+        testf("Failed to accept socket with: %d", err);
         socket.close();
         return false;
     }
 
-    Socket acceptedSocket = std::move(acceptRes.get());
     char readBuffer[100] = {1, 2, 3, 4, 5};
-    Result<uint32_t, SocketError> readRes = acceptedSocket.read(readBuffer, 5);
+    uint32_t bytesRead;
+    std::tie(bytesRead, err) = acceptedSocket.read(readBuffer, 5);
 
     writeThread.join();
 
-    if (!readRes.ok()) {
-        testf("Failed to write to socket with: %d", readRes.error());
+    if (err != SocketError::Ok) {
+        testf("Failed to write to socket with: %d", err);
         acceptedSocket.close();
         socket.close();
         return false;
@@ -118,9 +118,10 @@ bool test_socket_accept_multiple() {
 
     std::vector<std::thread> connectThreads;
     std::vector<SocketError> connectErrors;
+    std::mutex connectDataLock;
 
     for (auto i = 0; i < 10; i++) {
-        connectThreads.emplace_back(std::thread([connectAddr, &connectErrors] {
+        connectThreads.emplace_back(std::thread([connectAddr, &connectErrors, &connectDataLock] {
             Socket connectSocket;
             SocketError connectError;
 
@@ -132,20 +133,24 @@ bool test_socket_accept_multiple() {
 
             connectError = connectSocket.connect(connectAddr);
 
-            connectErrors.push_back(connectError);
+            {
+                std::lock_guard<std::mutex> lock(connectDataLock); // Multiple threads push errors
+                connectErrors.push_back(connectError);
+            }
+
             connectSocket.close();
         }));
     }
 
     for (auto i = 0; i < 10; i++) {
-        Result<Socket, SocketError> acceptRes = socket.accept();
-        if (!acceptRes.ok()) {
-            testf("Failed to accept socket with: %d", acceptRes.error());
+        Socket acceptedSocket;
+        std::tie(acceptedSocket, err) = socket.accept();
+        if (err != SocketError::Ok) {
+            testf("Failed to accept socket with: %d", err);
             socket.close();
             return false;
         }
 
-        Socket acceptedSocket = std::move(acceptRes.get());
         acceptedSocket.close();
     }
 

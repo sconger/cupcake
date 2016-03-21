@@ -8,11 +8,14 @@
 #include "cupcake/text/StringRef.h"
 
 #ifdef _WIN32
+#define NOMINMAX
 #include <Winsock2.h>
 #include <Windows.h>
 #else
 #include <sys/socket.h>
 #endif
+
+namespace Cupcake {
 
 /*
  * Represents an IPv4 or IPv6 address.
@@ -31,8 +34,8 @@ public:
     INet::Protocol getFamily() const;
     uint16_t getPort() const;
 
-	bool isAddrAny() const;
-	bool isLoopback() const;
+    bool isAddrAny() const;
+    bool isLoopback() const;
 
     bool operator==(const SockAddr& other);
     bool operator!=(const SockAddr& other);
@@ -52,5 +55,7 @@ private:
     sockaddr_storage storage;
 #endif
 };
+
+}
 
 #endif // CUPCAKE_SOCKADDR_H

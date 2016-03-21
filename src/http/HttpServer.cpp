@@ -3,6 +3,9 @@
 
 #include "cupcake/async/Async.h"
 
+#include "cupcake_priv/http/HttpConnection.h"
+#include "cupcake_priv/http/StreamSourceSocket.h"
+
 using namespace Cupcake;
 
 HttpServer::HttpServer() :
@@ -17,42 +20,57 @@ bool HttpServer::addHandler(const StringRef path, HttpHandler handler) {
     return true;
 }
 
-SocketError HttpServer::start(const SockAddr& sockAddr) {
+HttpError HttpServer::start(const SockAddr& sockAddr) {
     if (started) {
-        return SocketError::InvalidState;
+        return HttpError::InvalidState;
     }
+
+    // TODO: Generally need error brains
+    Socket socket;
 
     SocketError err = socket.init(sockAddr.getFamily());
 
     if (err != SocketError::Ok) {
-        return err;
+        return HttpError::IoError;
     }
 
     err = socket.bind(sockAddr);
 
     if (err != SocketError::Ok) {
-        return err;
+        return HttpError::IoError;
     }
 
     err = socket.listen();
 
     if (err != SocketError::Ok) {
-        return err;
+        return HttpError::IoError;
     }
 
-    while (true) {
-        Result<Socket, SocketError> res = socket.accept();
+    streamSource.reset(new StreamSourceSocket(std::move(socket)));
 
-        if (!res.ok()) {
-            return res.error();
+    return acceptLoop();
+}
+
+HttpError HttpServer::acceptLoop() {
+    while (true) {
+        StreamSource* acceptedSocket;
+        HttpError err;
+        std::tie(acceptedSocket, err) = streamSource->accept();
+
+        if (err != HttpError::Ok) {
+            return err;
         }
 
-        Socket acceptedSocket = std::move(res.get());
-
-        // TODO: Actually do something
+        Async::runAsync([&acceptedSocket] {
+            HttpConnection httpConnection(acceptedSocket);
+            try {
+                httpConnection.run();
+            }
+            catch (...) {
+                // TODO: log
+            }
+        });
     }
-
-    return SocketError::Ok;
 }
 
 void HttpServer::shutdown() {
@@ -60,5 +78,7 @@ void HttpServer::shutdown() {
         return;
     }
 
-    socket.close();
+    if (streamSource) {
+        streamSource->close();
+    }
 }

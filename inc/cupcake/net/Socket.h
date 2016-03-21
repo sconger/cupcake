@@ -2,10 +2,13 @@
 #ifndef CUPCAKE_SOCKET_H
 #define CUPCAKE_SOCKET_H
 
-#include "cupcake/Cupcake.h"
 #include "cupcake/net/SockAddr.h"
 #include "cupcake/net/SocketError.h"
 #include "cupcake/text/StringRef.h"
+
+#include <tuple>
+
+namespace Cupcake {
 
 class SocketImpl;
 
@@ -22,7 +25,7 @@ public:
     Socket& operator=(Socket&&);
 
     SocketError init(INet::Protocol prot);
-    void close();
+    SocketError close();
 
     SockAddr getLocalAddress() const;
     SockAddr getRemoteAddress() const;
@@ -31,11 +34,11 @@ public:
     SocketError listen();
     SocketError listen(uint32_t queue);
 
-    Result<Socket, SocketError> accept();
+    std::tuple<Socket, SocketError> accept();
     SocketError connect(const SockAddr& sockAddr);
 
-    Result<uint32_t, SocketError> read(char* buffer, uint32_t bufferLen);
-    Result<uint32_t, SocketError> write(const char* buffer, uint32_t bufferLen);
+    std::tuple<uint32_t, SocketError> read(char* buffer, uint32_t bufferLen);
+    std::tuple<uint32_t, SocketError> write(const char* buffer, uint32_t bufferLen);
 
     SocketError shutdownRead();
     SocketError shutdownWrite();
@@ -50,5 +53,7 @@ private:
 
     SocketImpl* impl;
 };
+
+}
 
 #endif // CUPCAKE_SOCKET_H

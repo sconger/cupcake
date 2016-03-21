@@ -4,15 +4,19 @@
 
 #include "cupcake/net/INet.h"
 
+using namespace Cupcake;
+
 bool test_inet_gethostname() {
     // Just confirm that we get something back
-    Result<String, SocketError> res = INet::getHostName();
+    String hostname;
+    SocketError err;
+    std::tie(hostname, err) = INet::getHostName();
     
-    if (!res.ok()) {
-        testf("INet::getHostName() failed with %u", res.error());
+    if (err != SocketError::Ok) {
+        testf("INet::getHostName() failed with %u", err);
     }
 
-    if (res.get().length() == 0) {
+    if (hostname.length() == 0) {
         testf("INet::getHostName() returned an empty string");
         return false;
     }

@@ -33,6 +33,8 @@ namespace std {
 }
 */
 
+namespace Cupcake {
+
 /*
  * OS specific socket implementation.
  */
@@ -42,7 +44,7 @@ public:
     ~SocketImpl();
 
     SocketError init(INet::Protocol prot);
-    void close();
+    SocketError close();
 
     SockAddr getLocalAddress() const;
     SockAddr getRemoteAddress() const;
@@ -51,11 +53,11 @@ public:
     SocketError listen();
     SocketError listen(uint32_t queue);
 
-    Result<Socket, SocketError> accept();
+    std::tuple<Socket, SocketError> accept();
     SocketError connect(const SockAddr& sockAddr);
 
-    Result<uint32_t, SocketError> read(char* buffer, uint32_t bufferLen);
-    Result<uint32_t, SocketError> write(const char* buffer, uint32_t bufferLen);
+    std::tuple<uint32_t, SocketError> read(char* buffer, uint32_t bufferLen);
+    std::tuple<uint32_t, SocketError> write(const char* buffer, uint32_t bufferLen);
 
     SocketError shutdownRead();
     SocketError shutdownWrite();
@@ -73,10 +75,10 @@ private:
     SocketImpl& operator=(const SocketImpl&) = delete;
     SocketImpl& operator=(SocketImpl&&) = delete;
 
-    std::future<void> accept_co(SOCKET preparedSocket, PTP_IO preparedPtpIo, Result<Socket, SocketError>* res);
+    std::future<void> accept_co(SOCKET preparedSocket, PTP_IO preparedPtpIo, std::tuple<Socket, SocketError>* res);
     std::future<void> connect_co(const SockAddr& sockAddr, SocketError* res);
-    std::future<void> read_co(char* buffer, uint32_t bufferLen, Result<uint32_t, SocketError>* res);
-    std::future<void> write_co(const char* buffer, uint32_t bufferLen, Result<uint32_t, SocketError>* res);
+    std::future<void> read_co(char* buffer, uint32_t bufferLen, std::tuple<uint32_t, SocketError>* res);
+    std::future<void> write_co(const char* buffer, uint32_t bufferLen, std::tuple<uint32_t, SocketError>* res);
 
     SOCKET socket;
     PTP_IO ptpIo;
@@ -84,5 +86,7 @@ private:
     SockAddr localAddr;
     SockAddr remoteAddr;
 };
+
+}
 
 #endif // CUPCAKE_SOCKET_IMPL_H
