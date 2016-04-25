@@ -9,6 +9,8 @@
 
 #include "cupcake_priv/http/StreamSource.h"
 
+#include "cupcake_priv/http/HandlerMap.h"
+
 #include <memory>
 
 namespace Cupcake {
@@ -37,6 +39,7 @@ private:
     HttpError acceptLoop();
 
     std::unique_ptr<StreamSource> streamSource;
+    HandlerMap handlerMap;
     bool started;
 };
 

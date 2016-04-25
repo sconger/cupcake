@@ -4,6 +4,28 @@
 #include <cassert>
 #include <cstring>
 
+// Define missing std functions from cstring if visual studio
+#ifdef _MSC_VER
+#include <memory.h>
+namespace std {
+void* memrchr(void* ptr, int ch, std::size_t count) {
+    unsigned char val = (unsigned char)ch;
+    const unsigned char* start = (const unsigned char*)ptr;
+    const unsigned char* search = start + count - 1;
+    while (search >= start && (*search) != val) {
+        search--;
+    }
+    if (search < start) {
+        return nullptr;
+    }
+    return (void*)search;
+}
+const void* memrchr(const void* ptr, int ch, std::size_t count) {
+    return (const void*)memrchr((void*)ptr, ch, count);
+}
+}
+#endif
+
 // Declare some String members for the incomplete type
 class String {
 public:
@@ -54,6 +76,10 @@ StringRef& StringRef::operator=(StringRef&& other) {
 }
 
 const char StringRef::charAt(size_t pos) const {
+    return strData[pos];
+}
+
+const char StringRef::operator[](size_t pos) const {
     return strData[pos];
 }
 
@@ -154,6 +180,20 @@ bool StringRef::engEqualsIgnoreCase(const StringRef& strRef) const {
     return true;
 }
 
+ptrdiff_t StringRef::indexOf(char c) const {
+    return indexOf(c, 0);
+}
+
+ptrdiff_t StringRef::indexOf(char c, size_t startIndex) const {
+    const char* start = data();
+
+    const char* match = std::strchr(start + startIndex, (int)c);
+    if (match == nullptr) {
+        return -1;
+    }
+    return match - start;
+}
+
 ptrdiff_t StringRef::indexOf(const StringRef& strRef) const {
     return indexOf(strRef, 0);
 }
@@ -230,6 +270,20 @@ ptrdiff_t StringRef::indexOf(const StringRef& strRef, size_t startIndex) const {
 
     // No match found
     return -1;
+}
+
+ptrdiff_t StringRef::lastIndexOf(char c) const {
+    return lastIndexOf(c, 0);
+}
+
+ptrdiff_t StringRef::lastIndexOf(char c, size_t endIndex) const {
+    const char* start = data();
+
+    const char* match = (const char*)std::memrchr(start, (int)c, endIndex);
+    if (match == nullptr) {
+        return -1;
+    }
+    return match - start;
 }
 
 ptrdiff_t StringRef::lastIndexOf(const StringRef& strRef) const {
@@ -317,11 +371,20 @@ StringRef StringRef::substring(size_t startIndex, size_t endIndex) const {
     return StringRef(strData+startIndex, endIndex - startIndex);
 }
 
+bool StringRef::startsWith(char c) const {
+    return length() > 0 && charAt(0) == c;
+}
+
 bool StringRef::startsWith(const StringRef& strRef) const {
     if (len < strRef.len)
         return false;
 
     return std::memcmp(strData, strRef.strData, strRef.len) == 0;
+}
+
+bool StringRef::endsWith(char c) const {
+    size_t len = length();
+    return len > 0 && charAt(len - 1) == c;
 }
 
 bool StringRef::endsWith(const StringRef& strRef) const {

@@ -27,6 +27,7 @@ public:
     StringRef& operator=(StringRef&& other);
 
     const char charAt(size_t pos) const;
+    const char operator[](size_t pos) const;
 
     int32_t compare(const StringRef& strRef) const;
 
@@ -39,9 +40,13 @@ public:
     int32_t engCompareIgnoreCase(const StringRef& strRef) const;
     bool engEqualsIgnoreCase(const StringRef& strRef) const;
 
+    ptrdiff_t indexOf(char c) const;
+    ptrdiff_t indexOf(char c, size_t startIndex) const;
     ptrdiff_t indexOf(const StringRef& strRef) const;
     ptrdiff_t indexOf(const StringRef& strRef, size_t startIndex) const;
 
+    ptrdiff_t lastIndexOf(char c) const;
+    ptrdiff_t lastIndexOf(char c, size_t startIndex) const;
     ptrdiff_t lastIndexOf(const StringRef& strRef) const;
     ptrdiff_t lastIndexOf(const StringRef& strRef, size_t endIndex) const;
 
@@ -50,8 +55,10 @@ public:
     StringRef substring(size_t startIndex) const;
     StringRef substring(size_t startIndex, size_t endIndex) const;
 
+    bool startsWith(char c) const;
     bool startsWith(const StringRef& strRef) const;
 
+    bool endsWith(char c) const;
     bool endsWith(const StringRef& strRef) const;
 
 private:

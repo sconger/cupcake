@@ -12,9 +12,17 @@ namespace Cupcake {
 enum class HttpError : uint32_t {
     Ok = 0,
 
+    // Generic errors
     InvalidState,
+
+    // IO errors
     ConnectionClosed,
     IoError,
+    Eof,
+
+    // Parsing errors
+    LineTooLong,
+    ClientError,
 };
 
 }

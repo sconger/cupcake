@@ -9,19 +9,6 @@
 
 #include <memory>
 
-// Headers seem to be missing defines for the inline functions in mingw
-#ifdef __MINGW32__
-#ifndef InitializeThreadpoolEnvironment
-#define InitializeThreadpoolEnvironment(X) TpInitializeCallbackEnviron(X)
-#endif
-#ifndef SetThreadpoolCallbackPool
-#define SetThreadpoolCallbackPool(X, Y) TpSetCallbackThreadpool((X), (Y))
-#endif
-#ifndef SetThreadpoolCallbackCleanupGroup
-#define SetThreadpoolCallbackCleanupGroup(X, Y, Z) TpSetCallbackCleanupGroup((X), (Y), (Z))
-#endif
-#endif
-
 static
 void CALLBACK workFunc(PTP_CALLBACK_INSTANCE callbackInstance,
     PVOID threadParam,

@@ -1,11 +1,6 @@
-
-add_subdirectory(net)
-add_subdirectory(text)
-add_subdirectory(util)
-
 file(GLOB
   LOCAL
-  "*.h"
+  "*.cpp"
 )
 
 set(CUPCAKE_UNIT_SRC

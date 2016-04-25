@@ -33,6 +33,7 @@ public:
     size_t hash() const;
 
     const char charAt(size_t pos) const;
+    const char operator[](size_t pos) const;
 
     int32_t compare(const StringRef strRef) const;
 

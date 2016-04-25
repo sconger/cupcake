@@ -9,6 +9,7 @@
 #include "unit/net/AddrInfo_test.h"
 #include "unit/net/Socket_test.h"
 #include "unit/net/INet_test.h"
+#include "unit/util/PathTrie_test.h"
 
 #include "cupcake/Cupcake.h"
 
@@ -52,7 +53,7 @@ int main(int argc, const char** argv) {
 
     Cupcake::init();
 
-    // Basic functionality
+    // Text
     RUN_TEST(test_string_create);
     RUN_TEST(test_string_append);
     RUN_TEST(test_string_indexOf);
@@ -60,6 +61,11 @@ int main(int argc, const char** argv) {
     RUN_TEST(test_string_startsWith);
     RUN_TEST(test_string_endsWith);
     RUN_TEST(test_string_substring);
+
+    // Util
+    RUN_TEST(test_pathtrie_exactmatch);
+    RUN_TEST(test_pathtrie_regex);
+    RUN_TEST(test_pathtrie_collision);
 
     // Socket functionality
     RUN_TEST(test_inet_gethostname);

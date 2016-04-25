@@ -273,6 +273,10 @@ const char String::charAt(size_t pos) const {
     return data()[pos];
 }
 
+const char String::operator[](size_t pos) const {
+    return data()[pos];
+}
+
 int32_t String::compare(const StringRef strRef) const {
     size_t len = length();
     size_t strRefLen = strRef.length();

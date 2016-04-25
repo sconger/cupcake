@@ -9,6 +9,7 @@
 #include <cstdio>
 #include <cstring>
 
+#include <Windows.h>
 #include <Ws2tcpip.h>
 #include <Mstcpip.h>
 

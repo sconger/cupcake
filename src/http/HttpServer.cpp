@@ -17,7 +17,7 @@ HttpServer::~HttpServer() {
 }
 
 bool HttpServer::addHandler(const StringRef path, HttpHandler handler) {
-    return true;
+    return handlerMap.addHandler(path, handler);
 }
 
 HttpError HttpServer::start(const SockAddr& sockAddr) {
@@ -52,6 +52,8 @@ HttpError HttpServer::start(const SockAddr& sockAddr) {
 }
 
 HttpError HttpServer::acceptLoop() {
+    const HandlerMap* handlerMapPtr = &handlerMap;
+
     while (true) {
         StreamSource* acceptedSocket;
         HttpError err;
@@ -61,8 +63,8 @@ HttpError HttpServer::acceptLoop() {
             return err;
         }
 
-        Async::runAsync([&acceptedSocket] {
-            HttpConnection httpConnection(acceptedSocket);
+        Async::runAsync([&acceptedSocket, handlerMapPtr] {
+            HttpConnection httpConnection(acceptedSocket, handlerMapPtr);
             try {
                 httpConnection.run();
             }

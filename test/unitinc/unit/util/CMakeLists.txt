@@ -1,8 +1,4 @@
 
-add_subdirectory(net)
-add_subdirectory(text)
-add_subdirectory(util)
-
 file(GLOB
   LOCAL
   "*.h"

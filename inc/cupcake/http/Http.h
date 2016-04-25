@@ -14,15 +14,21 @@
 namespace Cupcake {
 
 enum class HttpMethod {
-    GET,
-    HEAD,
-    POST,
-    PUT,
-    PATCH,
-    DELETE,
-    TRACE,
-    OPTIONS,
-    CONNECT
+    Get,
+    Head,
+    Post,
+    Put,
+    Patch,
+    Delete,
+    Trace,
+    Options,
+    Connect
+};
+
+enum class HttpVersion {
+    Http1_0,
+    Http1_1,
+    Http2_0,
 };
 
 class HttpInputStream {
@@ -50,6 +56,7 @@ public:
 };
 
 class HttpResponse {
+public:
     virtual HttpError setStatus(uint32_t code, StringRef statusText) = 0;
     virtual HttpError addHeader(StringRef headerName, StringRef headerValue) = 0;
 
