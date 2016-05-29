@@ -1,5 +1,6 @@
 add_subdirectory(http)
 add_subdirectory(net)
+add_subdirectory(text)
 add_subdirectory(util)
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Windows")

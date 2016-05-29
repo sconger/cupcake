@@ -34,6 +34,26 @@ std::tuple<uint32_t, HttpError> StreamSourceSocket::read(char* buffer, uint32_t 
         return std::make_tuple(0, HttpError::IoError);
     }
 
+    if (bytesRead == 0) {
+        return std::make_tuple(0, HttpError::Eof);
+    }
+
+    return std::make_tuple(bytesRead, HttpError::Ok);
+}
+
+std::tuple<uint32_t, HttpError> StreamSourceSocket::readv(INet::IoBuffer* buffers, uint32_t bufferCount) {
+    uint32_t bytesRead;
+    SocketError err;
+    std::tie(bytesRead, err) = socket.readv(buffers, bufferCount);
+
+    if (err != SocketError::Ok) {
+        return std::make_tuple(0, HttpError::IoError);
+    }
+
+    if (bytesRead == 0) {
+        return std::make_tuple(0, HttpError::Eof);
+    }
+
     return std::make_tuple(bytesRead, HttpError::Ok);
 }
 
@@ -41,6 +61,18 @@ std::tuple<uint32_t, HttpError> StreamSourceSocket::write(const char* buffer, ui
     uint32_t bytesWritten;
     SocketError err;
     std::tie(bytesWritten, err) = socket.write(buffer, bufferLen);
+
+    if (err != SocketError::Ok) {
+        return std::make_tuple(0, HttpError::IoError);
+    }
+
+    return std::make_tuple(bytesWritten, HttpError::Ok);
+}
+
+std::tuple<uint32_t, HttpError> StreamSourceSocket::writev(const INet::IoBuffer* buffers, uint32_t bufferCount) {
+    uint32_t bytesWritten;
+    SocketError err;
+    std::tie(bytesWritten, err) = socket.writev(buffers, bufferCount);
 
     if (err != SocketError::Ok) {
         return std::make_tuple(0, HttpError::IoError);

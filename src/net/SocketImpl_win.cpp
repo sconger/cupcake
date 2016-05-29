@@ -484,16 +484,15 @@ private:
 class SocketImpl::ReadAwaiter {
 public:
     ReadAwaiter(SocketImpl* socketImpl,
-                char* buffer,
-                uint32_t bufferLen) :
+                INet::IoBuffer* buffers,
+                uint32_t bufferCount) :
         socketImpl(socketImpl),
+        buffers(buffers),
+        bufferCount(bufferCount),
         overlappedData(),
         socketError(SocketError::Ok),
-        bytesXfer(0) {
-    
-        buffers[0].buf = buffer;
-        buffers[0].len = bufferLen;
-    }
+        bytesXfer(0)
+    {}
 
     bool await_ready() const {
         return false;
@@ -506,11 +505,17 @@ public:
         DWORD flags = 0;
         DWORD bytesRecv = 0;
 
+        WSABUF* wsaBufs = (WSABUF*)alloca(bufferCount * sizeof(WSABUF));
+        for (size_t i = 0; i < bufferCount; i++) {
+            wsaBufs[i].buf = buffers[i].buffer;
+            wsaBufs[i].len = buffers[i].bufferLen;
+        }
+
         ::StartThreadpoolIo(socketImpl->ptpIo);
 
         int res = ::WSARecv(socketImpl->socket,
-            buffers,
-            1,
+            wsaBufs,
+            bufferCount,
             &bytesRecv,
             &flags,
             (OVERLAPPED*)&overlappedData,
@@ -547,7 +552,8 @@ public:
 
 private:
     SocketImpl* socketImpl;
-    WSABUF buffers[1];
+    INet::IoBuffer* buffers;
+    uint32_t bufferCount;
     OverlappedData overlappedData;
     CompletionResult completionResult;
 
@@ -559,16 +565,15 @@ private:
 class SocketImpl::WriteAwaiter {
 public:
     WriteAwaiter(SocketImpl* socketImpl,
-                 const char* buffer,
-                 uint32_t bufferLen) :
+        const INet::IoBuffer* buffers,
+        uint32_t bufferCount) :
         socketImpl(socketImpl),
+        buffers(buffers),
+        bufferCount(bufferCount),
         overlappedData(),
         socketError(SocketError::Ok),
-        bytesXfer(0) {
-
-        buffers[0].buf = (char*)buffer;
-        buffers[0].len = bufferLen;
-    }
+        bytesXfer(0)
+    {}
 
     bool await_ready() const {
         return false;
@@ -580,11 +585,17 @@ public:
 
         DWORD bytesSent;
 
+        WSABUF* wsaBufs = (WSABUF*)alloca(bufferCount * sizeof(WSABUF));
+        for (size_t i = 0; i < bufferCount; i++) {
+            wsaBufs[i].buf = buffers[i].buffer;
+            wsaBufs[i].len = buffers[i].bufferLen;
+        }
+
         ::StartThreadpoolIo(socketImpl->ptpIo);
 
         int res = ::WSASend(socketImpl->socket,
-            buffers,
-            1,
+            wsaBufs,
+            bufferCount,
             &bytesSent,
             0,
             (OVERLAPPED*)&overlappedData,
@@ -621,7 +632,8 @@ public:
 
 private:
     SocketImpl* socketImpl;
-    WSABUF buffers[1];
+    const INet::IoBuffer* buffers;
+    uint32_t bufferCount;
     OverlappedData overlappedData;
     CompletionResult completionResult;
 
@@ -733,7 +745,7 @@ SocketError SocketImpl::listen(uint32_t queue) {
 }
 
 std::future<void> SocketImpl::accept_co(SOCKET preparedSocket, PTP_IO preparedPtpIo, std::tuple<Socket, SocketError>* res) {
-    (*res) = await AcceptAwaiter(this, preparedSocket, preparedPtpIo);
+    (*res) = co_await AcceptAwaiter(this, preparedSocket, preparedPtpIo);
 }
 
 std::tuple<Socket, SocketError> SocketImpl::accept() {
@@ -766,7 +778,7 @@ std::tuple<Socket, SocketError> SocketImpl::accept() {
 }
 
 std::future<void> SocketImpl::connect_co(const SockAddr& sockAddr, SocketError* res) {
-    (*res) = await ConnectAwaiter(this, sockAddr);
+    (*res) = co_await ConnectAwaiter(this, sockAddr);
 }
 
 SocketError SocketImpl::connect(const SockAddr& sockAddr) {
@@ -793,31 +805,45 @@ SocketError SocketImpl::connect(const SockAddr& sockAddr) {
     return res;
 }
 
-std::future<void> SocketImpl::read_co(char* buffer, uint32_t bufferLen, std::tuple<uint32_t, SocketError>* res) {
-    (*res) = await ReadAwaiter(this, buffer, bufferLen);
+std::future<void> SocketImpl::read_co(INet::IoBuffer* buffers, uint32_t bufferCount, std::tuple<uint32_t, SocketError>* res) {
+    (*res) = co_await ReadAwaiter(this, buffers, bufferCount);
 }
 
 std::tuple<uint32_t, SocketError> SocketImpl::read(char* buffer, uint32_t bufferLen) {
+    INet::IoBuffer ioBuffer;
+    ioBuffer.buffer = buffer;
+    ioBuffer.bufferLen = bufferLen;
+    return readv(&ioBuffer, 1);
+}
+
+std::tuple<uint32_t, SocketError> SocketImpl::readv(INet::IoBuffer* buffers, uint32_t bufferCount) {
     if (socket == INVALID_SOCKET) {
         return std::make_tuple(0, SocketError::NotInitialized);
     }
 
     std::tuple<uint32_t, SocketError> res(0, SocketError::Ok);
-    read_co(buffer, bufferLen, &res).get();
+    read_co(buffers, bufferCount, &res).get();
     return res;
 }
 
-std::future<void> SocketImpl::write_co(const char* buffer, uint32_t bufferLen, std::tuple<uint32_t, SocketError>* res) {
-    (*res) = await WriteAwaiter(this, buffer, bufferLen);
+std::future<void> SocketImpl::write_co(const INet::IoBuffer* buffers, uint32_t bufferCount, std::tuple<uint32_t, SocketError>* res) {
+    (*res) = co_await WriteAwaiter(this, buffers, bufferCount);
 }
 
 std::tuple<uint32_t, SocketError> SocketImpl::write(const char* buffer, uint32_t bufferLen) {
+    INet::IoBuffer ioBuffer;
+    ioBuffer.buffer = (char*)buffer;
+    ioBuffer.bufferLen = bufferLen;
+    return writev(&ioBuffer, 1);
+}
+
+std::tuple<uint32_t, SocketError> SocketImpl::writev(const INet::IoBuffer* buffers, uint32_t bufferCount) {
     if (socket == INVALID_SOCKET) {
         return std::make_tuple(0, SocketError::NotInitialized);
     }
 
     std::tuple<uint32_t, SocketError> res(0, SocketError::Ok);
-    write_co(buffer, bufferLen, &res).get();
+    write_co(buffers, bufferCount, &res).get();
     return res;
 }
 

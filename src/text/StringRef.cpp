@@ -83,7 +83,7 @@ const char StringRef::operator[](size_t pos) const {
     return strData[pos];
 }
 
-int32_t StringRef::compare(const StringRef& strRef) const {
+int32_t StringRef::compare(const StringRef strRef) const {
     // Emulate behavior of strcmp. That is, do comparison as if this was
     // nul terminated.
     if (len == strRef.len) {
@@ -118,14 +118,14 @@ size_t StringRef::hash() const {
     return hash;
 }
 
-bool StringRef::equals(const StringRef& strRef) const {
+bool StringRef::equals(const StringRef strRef) const {
     if (len != strRef.len)
         return false;
 
     return std::memcmp(strData, strRef.strData, len) == 0;
 }
 
-int32_t StringRef::engCompareIgnoreCase(const StringRef& strRef) const {
+int32_t StringRef::engCompareIgnoreCase(const StringRef strRef) const {
     for (size_t i = 0;
          i < len && i < strRef.len;
          i++)
@@ -155,7 +155,7 @@ int32_t StringRef::engCompareIgnoreCase(const StringRef& strRef) const {
     }
 }
 
-bool StringRef::engEqualsIgnoreCase(const StringRef& strRef) const {
+bool StringRef::engEqualsIgnoreCase(const StringRef strRef) const {
     if (len != strRef.len)
         return false;
 
@@ -194,11 +194,11 @@ ptrdiff_t StringRef::indexOf(char c, size_t startIndex) const {
     return match - start;
 }
 
-ptrdiff_t StringRef::indexOf(const StringRef& strRef) const {
+ptrdiff_t StringRef::indexOf(const StringRef strRef) const {
     return indexOf(strRef, 0);
 }
 
-ptrdiff_t StringRef::indexOf(const StringRef& strRef, size_t startIndex) const {
+ptrdiff_t StringRef::indexOf(const StringRef strRef, size_t startIndex) const {
     assert(startIndex >= 0 && startIndex <= len);
 
     size_t strRefLen = strRef.length();
@@ -286,11 +286,11 @@ ptrdiff_t StringRef::lastIndexOf(char c, size_t endIndex) const {
     return match - start;
 }
 
-ptrdiff_t StringRef::lastIndexOf(const StringRef& strRef) const {
+ptrdiff_t StringRef::lastIndexOf(const StringRef strRef) const {
     return lastIndexOf(strRef, len);
 }
 
-ptrdiff_t StringRef::lastIndexOf(const StringRef& strRef, size_t endIndex) const {
+ptrdiff_t StringRef::lastIndexOf(const StringRef strRef, size_t endIndex) const {
     assert(endIndex >= 0 && endIndex <= len);
 
     size_t strRefLen = strRef.length();
@@ -375,7 +375,7 @@ bool StringRef::startsWith(char c) const {
     return length() > 0 && charAt(0) == c;
 }
 
-bool StringRef::startsWith(const StringRef& strRef) const {
+bool StringRef::startsWith(const StringRef strRef) const {
     if (len < strRef.len)
         return false;
 
@@ -387,81 +387,81 @@ bool StringRef::endsWith(char c) const {
     return len > 0 && charAt(len - 1) == c;
 }
 
-bool StringRef::endsWith(const StringRef& strRef) const {
+bool StringRef::endsWith(const StringRef strRef) const {
     if (len < strRef.len)
         return false;
 
     return std::memcmp(strData + len - strRef.len, strRef.strData, strRef.len) == 0;
 }
 
-bool operator<(const StringRef& strRef1, const StringRef& strRef2) {
+bool operator<(const StringRef strRef1, const StringRef strRef2) {
     return strRef1.compare(strRef2) < 0;
 }
 
-bool operator<(const char* cstr, const StringRef& strRef) {
+bool operator<(const char* cstr, const StringRef strRef) {
     return StringRef(cstr).compare(strRef) < 0;
 }
 
-bool operator<(const StringRef& strRef, const char* cstr) {
+bool operator<(const StringRef strRef, const char* cstr) {
     return strRef.compare(StringRef(cstr)) < 0;
 }
 
-bool operator<=(const StringRef& strRef1, const StringRef& strRef2) {
+bool operator<=(const StringRef strRef1, const StringRef strRef2) {
     return strRef1.compare(strRef2) <= 0;
 }
 
-bool operator<=(const char* cstr, const StringRef& strRef) {
+bool operator<=(const char* cstr, const StringRef strRef) {
     return StringRef(cstr).compare(strRef) <= 0;
 }
 
-bool operator<=(const StringRef& strRef, const char* cstr) {
+bool operator<=(const StringRef strRef, const char* cstr) {
     return strRef.compare(StringRef(cstr)) <= 0;
 }
 
-bool operator>(const StringRef& strRef1, const StringRef& strRef2) {
+bool operator>(const StringRef strRef1, const StringRef strRef2) {
     return strRef1.compare(strRef2) > 0;
 }
 
-bool operator>(const char* cstr, const StringRef& strRef) {
+bool operator>(const char* cstr, const StringRef strRef) {
     return StringRef(cstr).compare(strRef) > 0;
 }
 
-bool operator>(const StringRef& strRef, const char* cstr) {
+bool operator>(const StringRef strRef, const char* cstr) {
     return strRef.compare(StringRef(cstr)) > 0;
 }
 
-bool operator>=(const StringRef& strRef1, const StringRef& strRef2) {
+bool operator>=(const StringRef strRef1, const StringRef strRef2) {
     return strRef1.compare(strRef2) >= 0;
 }
 
-bool operator>=(const char* cstr, const StringRef& strRef) {
+bool operator>=(const char* cstr, const StringRef strRef) {
     return StringRef(cstr).compare(strRef) >= 0;
 }
 
-bool operator>=(const StringRef& strRef, const char* cstr) {
+bool operator>=(const StringRef strRef, const char* cstr) {
     return strRef.compare(StringRef(cstr)) >= 0;
 }
 
-bool operator==(const StringRef& strRef1, const StringRef& strRef2) {
+bool operator==(const StringRef strRef1, const StringRef strRef2) {
     return strRef1.equals(strRef2);
 }
 
-bool operator==(const char* cstr, const StringRef& strRef) {
+bool operator==(const char* cstr, const StringRef strRef) {
     return StringRef(cstr).equals(strRef);
 }
 
-bool operator==(const StringRef& strRef, const char* cstr) {
+bool operator==(const StringRef strRef, const char* cstr) {
     return strRef.equals(StringRef(cstr));
 }
 
-bool operator!=(const StringRef& strRef1, const StringRef& strRef2) {
+bool operator!=(const StringRef strRef1, const StringRef strRef2) {
     return !strRef1.equals(strRef2);
 }
 
-bool operator!=(const char* cstr, const StringRef& strRef) {
+bool operator!=(const char* cstr, const StringRef strRef) {
     return !StringRef(cstr).equals(strRef);
 }
 
-bool operator!=(const StringRef& strRef, const char* cstr) {
+bool operator!=(const StringRef strRef, const char* cstr) {
     return !strRef.equals(StringRef(cstr));
 }

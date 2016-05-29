@@ -38,7 +38,9 @@ public:
     SocketError connect(const SockAddr& sockAddr);
 
     std::tuple<uint32_t, SocketError> read(char* buffer, uint32_t bufferLen);
+    std::tuple<uint32_t, SocketError> readv(INet::IoBuffer* buffers, uint32_t bufferCount);
     std::tuple<uint32_t, SocketError> write(const char* buffer, uint32_t bufferLen);
+    std::tuple<uint32_t, SocketError> writev(const INet::IoBuffer* buffers, uint32_t bufferCount);
 
     SocketError shutdownRead();
     SocketError shutdownWrite();

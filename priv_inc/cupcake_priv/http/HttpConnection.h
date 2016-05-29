@@ -36,6 +36,7 @@ private:
     std::tuple<StringRef, HttpError> readLine();
     bool parseRequestLine(const StringRef line);
     bool parseHeaderLine(const StringRef line);
+    bool parseSpecialHeaders();
     HttpError sendStatus(uint32_t code, const StringRef reasonPhrase);
 
     const HandlerMap* handlerMap;
@@ -48,6 +49,9 @@ private:
     String curUrl;
     std::vector<String> curHeaderNames;
     std::vector<String> curHeaderValues;
+    bool hasContentLength;
+    uint64_t contentLength;
+    bool isChunked;
 };
 
 }

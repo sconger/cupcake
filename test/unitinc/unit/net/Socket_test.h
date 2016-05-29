@@ -4,6 +4,7 @@
 #define CUPCAKE_SOCKET_TEST_H
 
 bool test_socket_basic();
+bool test_socket_vector();
 bool test_socket_accept_multiple();
 bool test_socket_set_options();
 

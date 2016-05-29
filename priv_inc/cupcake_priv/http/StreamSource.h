@@ -3,6 +3,7 @@
 #define CUPCAKE_STREAM_SOURCE_H
 
 #include "cupcake/http/HttpError.h"
+#include "cupcake/net/INet.h"
 
 #include <tuple>
 
@@ -19,7 +20,9 @@ class StreamSource {
 public:
     virtual std::tuple<StreamSource*, HttpError> accept() = 0;
     virtual std::tuple<uint32_t, HttpError> read(char* buffer, uint32_t bufferLen) = 0;
+    virtual std::tuple<uint32_t, HttpError> readv(INet::IoBuffer* buffers, uint32_t bufferCount) = 0;
     virtual std::tuple<uint32_t, HttpError> write(const char* buffer, uint32_t bufferLen) = 0;
+    virtual std::tuple<uint32_t, HttpError> writev(const INet::IoBuffer* buffers, uint32_t bufferCount) = 0;
     virtual HttpError close() = 0;
 };
 

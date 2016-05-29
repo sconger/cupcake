@@ -8,8 +8,7 @@
 #include <memory>
 
 
-String::String()
-{
+String::String() {
     _short._size = 0;
     _short._data[0] = '\0';
 }
@@ -309,6 +308,14 @@ bool String::equals(const StringRef strRef) const {
     }
 
     return std::memcmp(data(), strRef.data(), len) == 0;
+}
+
+int32_t String::engCompareIgnoreCase(const StringRef strRef) const {
+    return StringRef(*this).engCompareIgnoreCase(strRef);
+}
+
+bool String::engEqualsIgnoreCase(const StringRef strRef) const {
+    return StringRef(*this).engEqualsIgnoreCase(strRef);
 }
 
 ptrdiff_t String::indexOf(const StringRef strRef) const {

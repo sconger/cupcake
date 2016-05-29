@@ -40,6 +40,7 @@ public:
 class HttpOutputStream {
 public:
     virtual std::tuple<uint32_t, HttpError> write(const char* buffer, uint32_t bufferLen) = 0;
+    virtual HttpError flush() = 0;
     virtual HttpError close() = 0;
 };
 
@@ -48,9 +49,9 @@ public:
     virtual const HttpMethod getMethod() const = 0;
     virtual const StringRef getUrl() const = 0;
 
-    virtual const uint32_t getHeaderCount() const = 0;
+    virtual uint32_t getHeaderCount() const = 0;
     virtual std::tuple<StringRef, StringRef> getHeader(uint32_t index) const = 0;
-    virtual const StringRef getHeader(const StringRef headerName) const = 0;
+    virtual std::tuple<StringRef, bool> getHeader(const StringRef headerName) const = 0;
 
     virtual HttpInputStream& getInputStream() = 0;
 };
@@ -60,7 +61,7 @@ public:
     virtual HttpError setStatus(uint32_t code, StringRef statusText) = 0;
     virtual HttpError addHeader(StringRef headerName, StringRef headerValue) = 0;
 
-    virtual HttpOutputStream& getOutputStream() = 0;
+    virtual HttpOutputStream& getOutputStream() const = 0;
 };
 
 typedef std::function<void(HttpRequest& request, HttpResponse& response)> HttpHandler;

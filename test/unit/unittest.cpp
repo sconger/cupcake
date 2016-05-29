@@ -5,7 +5,10 @@
 
 #include "unit/UnitTest.h"
 
+#include "unit/http/BufferedReader_test.h"
+#include "unit/http/BufferedWriter_test.h"
 #include "unit/text/String_test.h"
+#include "unit/text/Strconv_test.h"
 #include "unit/net/AddrInfo_test.h"
 #include "unit/net/Socket_test.h"
 #include "unit/net/INet_test.h"
@@ -62,6 +65,15 @@ int main(int argc, const char** argv) {
     RUN_TEST(test_string_endsWith);
     RUN_TEST(test_string_substring);
 
+    RUN_TEST(test_strconv_int32ToStr);
+    RUN_TEST(test_strconv_int64ToStr);
+    RUN_TEST(test_strconv_uint32ToStr);
+    RUN_TEST(test_strconv_uint64ToStr);
+    RUN_TEST(test_strconv_parseInt32);
+    RUN_TEST(test_strconv_parseInt64);
+    RUN_TEST(test_strconv_parseUint32);
+    RUN_TEST(test_strconv_parseUint64);
+
     // Util
     RUN_TEST(test_pathtrie_exactmatch);
     RUN_TEST(test_pathtrie_regex);
@@ -74,8 +86,15 @@ int main(int argc, const char** argv) {
     RUN_TEST(test_addrinfo_asynclookup);
 
     RUN_TEST(test_socket_basic);
+    RUN_TEST(test_socket_vector);
     RUN_TEST(test_socket_accept_multiple);
     RUN_TEST(test_socket_set_options);
+
+    // HTTP functionality
+    RUN_TEST(test_bufferedreader_basic);
+    RUN_TEST(test_bufferedreader_readline);
+    RUN_TEST(test_bufferedwriter_basic);
+    RUN_TEST(test_bufferedwriter_flush);
 
     if (testRes) {
         printf("FAILURE: Not all tests passed.\n");

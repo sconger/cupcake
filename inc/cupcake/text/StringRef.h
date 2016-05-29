@@ -29,26 +29,26 @@ public:
     const char charAt(size_t pos) const;
     const char operator[](size_t pos) const;
 
-    int32_t compare(const StringRef& strRef) const;
+    int32_t compare(const StringRef strRef) const;
 
     const char* data() const;
 
     size_t hash() const;
 
-    bool equals(const StringRef& strRef) const;
+    bool equals(const StringRef strRef) const;
 
-    int32_t engCompareIgnoreCase(const StringRef& strRef) const;
-    bool engEqualsIgnoreCase(const StringRef& strRef) const;
+    int32_t engCompareIgnoreCase(const StringRef strRef) const;
+    bool engEqualsIgnoreCase(const StringRef strRef) const;
 
     ptrdiff_t indexOf(char c) const;
     ptrdiff_t indexOf(char c, size_t startIndex) const;
-    ptrdiff_t indexOf(const StringRef& strRef) const;
-    ptrdiff_t indexOf(const StringRef& strRef, size_t startIndex) const;
+    ptrdiff_t indexOf(const StringRef strRef) const;
+    ptrdiff_t indexOf(const StringRef strRef, size_t startIndex) const;
 
     ptrdiff_t lastIndexOf(char c) const;
     ptrdiff_t lastIndexOf(char c, size_t startIndex) const;
-    ptrdiff_t lastIndexOf(const StringRef& strRef) const;
-    ptrdiff_t lastIndexOf(const StringRef& strRef, size_t endIndex) const;
+    ptrdiff_t lastIndexOf(const StringRef strRef) const;
+    ptrdiff_t lastIndexOf(const StringRef strRef, size_t endIndex) const;
 
     size_t length() const;
 
@@ -56,40 +56,40 @@ public:
     StringRef substring(size_t startIndex, size_t endIndex) const;
 
     bool startsWith(char c) const;
-    bool startsWith(const StringRef& strRef) const;
+    bool startsWith(const StringRef strRef) const;
 
     bool endsWith(char c) const;
-    bool endsWith(const StringRef& strRef) const;
+    bool endsWith(const StringRef strRef) const;
 
 private:
     const char* strData;
     size_t len;
 };
 
-bool operator<(const StringRef& strRef1, const StringRef& strRef2);
-bool operator<(const char* cstr, const StringRef& strRef);
-bool operator<(const StringRef& strRef, const char* cstr);
-bool operator<=(const StringRef& strRef1, const StringRef& strRef2);
-bool operator<=(const char* cstr, const StringRef& strRef);
-bool operator<=(const StringRef& strRef, const char* cstr);
-bool operator>(const StringRef& strRef1, const StringRef& strRef2);
-bool operator>(const char* cstr, const StringRef& strRef);
-bool operator>(const StringRef& strRef, const char* cstr);
-bool operator>=(const StringRef& strRef1, const StringRef& strRef2);
-bool operator>=(const char* cstr, const StringRef& strRef);
-bool operator>=(const StringRef& strRef, const char* cstr);
-bool operator==(const StringRef& strRef1, const StringRef& strRef2);
-bool operator==(const char* cstr, const StringRef& strRef);
-bool operator==(const StringRef& strRef, const char* cstr);
-bool operator!=(const StringRef& strRef1, const StringRef& strRef2);
-bool operator!=(const char* cstr, const StringRef& strRef);
-bool operator!=(const StringRef& strRef, const char* cstr);
+bool operator<(const StringRef strRef1, const StringRef strRef2);
+bool operator<(const char* cstr, const StringRef strRef);
+bool operator<(const StringRef strRef, const char* cstr);
+bool operator<=(const StringRef strRef1, const StringRef strRef2);
+bool operator<=(const char* cstr, const StringRef strRef);
+bool operator<=(const StringRef strRef, const char* cstr);
+bool operator>(const StringRef strRef1, const StringRef strRef2);
+bool operator>(const char* cstr, const StringRef strRef);
+bool operator>(const StringRef strRef, const char* cstr);
+bool operator>=(const StringRef, const StringRef strRef2);
+bool operator>=(const char* cstr, const StringRef strRef);
+bool operator>=(const StringRef strRef, const char* cstr);
+bool operator==(const StringRef strRef1, const StringRef strRef2);
+bool operator==(const char* cstr, const StringRef strRef);
+bool operator==(const StringRef strRef, const char* cstr);
+bool operator!=(const StringRef strRef1, const StringRef strRef2);
+bool operator!=(const char* cstr, const StringRef strRef);
+bool operator!=(const StringRef strRef, const char* cstr);
 
 // A hash function for std::unordered_map and std::unordered_set
 namespace std {
     template <>
     struct hash<StringRef> {
-        size_t operator()(const StringRef& str) const {
+        size_t operator()(const StringRef str) const {
             return str.hash();
         }
     };

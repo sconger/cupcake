@@ -38,6 +38,6 @@ std::tuple<uint32_t, HttpError> ContentLengthReader::read(char* buffer, uint32_t
 }
 
 HttpError ContentLengthReader::close() {
-    // TODO
+    // TODO: Cause return EOF on future reads?
     return HttpError::Ok;
 }

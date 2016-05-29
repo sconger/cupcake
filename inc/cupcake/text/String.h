@@ -39,6 +39,9 @@ public:
 
     bool equals(const StringRef strRef) const;
 
+    int32_t engCompareIgnoreCase(const StringRef strRef) const;
+    bool engEqualsIgnoreCase(const StringRef strRef) const;
+
     ptrdiff_t indexOf(const StringRef strRef) const;
     ptrdiff_t indexOf(const StringRef strRef, size_t startIndex) const;
 

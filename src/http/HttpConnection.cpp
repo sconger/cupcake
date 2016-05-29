@@ -1,6 +1,10 @@
 
 #include "cupcake_priv/http/HttpConnection.h"
 
+#include "cupcake_priv/http/ContentLengthReader.h"
+#include "cupcake_priv/http/HttpRequestImpl.h"
+#include "cupcake_priv/text/Strconv.h"
+
 #include <unordered_map>
 
 using namespace Cupcake;
@@ -70,17 +74,33 @@ HttpError HttpConnection::innerRun() {
         }
     } while (true);
 
+    // Go through the headers so far and parse out special ones we need to pay attention to
+    bool headersOkay = parseSpecialHeaders();
+
+    if (!headersOkay) {
+        return HttpError::ClientError;
+    }
+
     HttpHandler handler;
     bool foundHandler;
-    std::tie(handler, foundHandler) = this->handlerMap->getHandler(curUrl);
+    std::tie(handler, foundHandler) = handlerMap->getHandler(curUrl);
 
     if (!foundHandler) {
         return sendStatus(404, "Not Found");
     }
 
+    ContentLengthReader contentLengthReader(bufReader, contentLength);
+
+    HttpRequestImpl requestImpl(curMethod,
+        curUrl,
+        curHeaderNames, // TODO: StringRefs
+        curHeaderValues, // TODO: StringRefs
+        contentLengthReader);
+
     return HttpError::Ok;
 }
 
+// TODO: Pass errors back
 bool HttpConnection::parseRequestLine(const StringRef line) {
     // Assuming exactly two spaces at the moment
     ptrdiff_t firstSpaceIndex = line.indexOf(' ');
@@ -134,6 +154,7 @@ bool HttpConnection::parseRequestLine(const StringRef line) {
     return true;
 }
 
+// TODO: Pass errors back
 bool HttpConnection::parseHeaderLine(const StringRef line) {
     // Check for end of headers
     if (line.length() == 0) {
@@ -175,8 +196,42 @@ bool HttpConnection::parseHeaderLine(const StringRef line) {
         headerValue = headerValue.substring(1);
     }
 
+    // There is the possibility of multiple headers with the same name.
+    // In that case, we want to append it as a comma separated value to
+    // the previous header.
+    // https://www.w3.org/Protocols/rfc2616/rfc2616-sec4.html#sec4.2
+    for (size_t i = 0; i < curHeaderNames.size(); i++) {
+        const String& existingHeaderName = curHeaderNames[i];
+        if (headerName.engEqualsIgnoreCase(existingHeaderName)) {
+            String& existingValue = curHeaderValues[i];
+            existingValue.appendChar(',');
+            existingValue.append(headerValue);
+            return true;
+        }
+    }
+
     curHeaderNames.emplace_back(headerName);
     curHeaderValues.emplace_back(headerValue);
+    return true;
+}
+
+// TODO: Store index of these headers so we don't need to find them?
+bool HttpConnection::parseSpecialHeaders() {
+    for (size_t i = 0; i < curHeaderNames.size(); i++) {
+        const String& headerName = curHeaderNames[i];
+        if (headerName.engEqualsIgnoreCase("Content-Length")) {
+            bool validNumber;
+            std::tie(contentLength, validNumber) = Strconv::parseUint64(curHeaderValues[i]);
+
+            if (!validNumber) {
+                sendStatus(400, "Invalid Content-Length");
+                return false;
+            }
+            hasContentLength = true;
+        } else if (headerName.engEqualsIgnoreCase("Transfer-Encoding")) {
+            // TODO: Chunked if value after last comma is "chunked"
+        }
+    }
     return true;
 }
 

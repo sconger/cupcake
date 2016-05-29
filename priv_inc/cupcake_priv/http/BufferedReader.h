@@ -34,6 +34,8 @@ private:
     BufferedReader(const BufferedReader&) = delete;
     BufferedReader& operator=(const BufferedReader&) = delete;
 
+    void discardReadLines();
+
     StreamSource* socket;
     std::unique_ptr<char[]> buffer;
     size_t bufferLen;
