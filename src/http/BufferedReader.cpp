@@ -58,16 +58,16 @@ std::tuple<uint32_t, HttpError> BufferedReader::read(char* destBuffer, uint32_t 
     return std::make_tuple(bytesCopied, HttpError::Ok);
 }
 
-std::tuple<StringRef, HttpError> BufferedReader::readLine(size_t maxLength) {
+std::tuple<StringRef, HttpError> BufferedReader::readLine(uint32_t maxLength) {
     bool foundLineEnd = false;
-    size_t searchIndex = startIndex;
+    uint32_t searchIndex = startIndex;
 
     do {
-        size_t lineEndIndex;
-        size_t newStartIndex;
+        uint32_t lineEndIndex;
+        uint32_t newStartIndex;
 
         // Look for a newline in existing data
-        for (size_t i = searchIndex; !foundLineEnd && i < endIndex; i++) {
+        for (uint32_t i = searchIndex; !foundLineEnd && i < endIndex; i++) {
             if (buffer[i] != '\n') {
                 continue;
             }
@@ -82,7 +82,7 @@ std::tuple<StringRef, HttpError> BufferedReader::readLine(size_t maxLength) {
         }
 
         if (foundLineEnd) {
-            size_t oldStartIndex = startIndex;
+            uint32_t oldStartIndex = startIndex;
             startIndex = newStartIndex;
             return std::make_tuple(StringRef(buffer.get()+oldStartIndex, lineEndIndex - oldStartIndex), HttpError::Ok);
         }
@@ -91,7 +91,7 @@ std::tuple<StringRef, HttpError> BufferedReader::readLine(size_t maxLength) {
 
         // Discard old data still in the buffer, or increase buffer size if needed
         if (startIndex != 0) {
-            size_t available = endIndex - startIndex;
+            uint32_t available = endIndex - startIndex;
             std::memmove(buffer.get(), buffer.get() + startIndex, available);
             searchIndex -= startIndex;
             startIndex = 0;
@@ -101,7 +101,8 @@ std::tuple<StringRef, HttpError> BufferedReader::readLine(size_t maxLength) {
                 return std::make_tuple(StringRef(), HttpError::LineTooLong);
             }
 
-            size_t newBufferLen = std::max(bufferLen * 2, maxLength + 2); // +2 to allow for \r\n
+            // TODO: Overflow check
+            uint32_t newBufferLen = std::max(bufferLen * 2, maxLength + 2); // +2 to allow for \r\n
             std::unique_ptr<char[]> newPtr(new char[newBufferLen]);
             std::memcpy(newPtr.get(), buffer.get(), bufferLen);
             buffer.swap(newPtr);
@@ -120,8 +121,8 @@ std::tuple<StringRef, HttpError> BufferedReader::readLine(size_t maxLength) {
             }
 
             // But if we do have something, consider that a line and return it
-            size_t oldStartIndex = startIndex;
-            size_t oldEndIndex = endIndex;
+            uint32_t oldStartIndex = startIndex;
+            uint32_t oldEndIndex = endIndex;
             startIndex = 0;
             endIndex = 0;
             return std::make_tuple(StringRef(buffer.get() + oldStartIndex, oldEndIndex - oldStartIndex), HttpError::Ok);
@@ -129,18 +130,13 @@ std::tuple<StringRef, HttpError> BufferedReader::readLine(size_t maxLength) {
             return std::make_tuple(StringRef(), err);
         }
 
-        endIndex += (size_t)bytesRead;
+        endIndex += bytesRead;
 
     } while (true);
 }
 
-HttpError BufferedReader::readAtLeast(size_t byteCount) {
+HttpError BufferedReader::readFixedLength(char* buffer, uint32_t byteCount) {
     // TODO
 
     return HttpError::Ok;
 }
-
-const char* BufferedReader::data() const {
-    return buffer.get();
-}
-

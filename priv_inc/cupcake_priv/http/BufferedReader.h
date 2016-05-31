@@ -14,8 +14,6 @@ namespace Cupcake {
 /*
  * Buffered reader to simplify reading lines or hunks of known-size data. Holds
  * a reference to a socket, so it needs to be destroyed before the socket.
- *
- * Intended to work with socket-like thing, but just sockets for now.
  */
 class BufferedReader {
 public:
@@ -25,22 +23,18 @@ public:
     void init(StreamSource* socket, size_t initialBuffer);
 
     std::tuple<uint32_t, HttpError> read(char* buffer, uint32_t bufferLen);
-    HttpError readAtLeast(size_t byteCount);
-    std::tuple<StringRef, HttpError> readLine(size_t maxLength);
-
-    const char* data() const;
+    HttpError readFixedLength(char* buffer, uint32_t byteCount);
+    std::tuple<StringRef, HttpError> readLine(uint32_t maxLength);
 
 private:
     BufferedReader(const BufferedReader&) = delete;
     BufferedReader& operator=(const BufferedReader&) = delete;
 
-    void discardReadLines();
-
     StreamSource* socket;
     std::unique_ptr<char[]> buffer;
-    size_t bufferLen;
-    size_t startIndex;
-    size_t endIndex;
+    uint32_t bufferLen;
+    uint32_t startIndex;
+    uint32_t endIndex;
 };
 
 }

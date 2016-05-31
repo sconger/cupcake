@@ -11,9 +11,9 @@
 
 using namespace Cupcake;
 
-class TestSource : public StreamSource {
+class ReadTestSource : public StreamSource {
 public:
-    TestSource(const char* sourceData, size_t dataLen) :
+    ReadTestSource(const char* sourceData, size_t dataLen) :
         sourceData(sourceData),
         dataLen(dataLen),
         readCount(0) {}
@@ -69,7 +69,7 @@ private:
 };
 
 bool test_bufferedreader_basic() {
-    TestSource testSource("Hello World", 11);
+    ReadTestSource testSource("Hello World", 11);
     BufferedReader bufReader;
     bufReader.init(&testSource, 100);
 
@@ -114,7 +114,7 @@ bool test_bufferedreader_basic() {
 
 bool test_bufferedreader_readline() {
     String testData = "line1\r\nline2\nline3\n\nline5";
-    TestSource testSource(testData.c_str(), testData.length());
+    ReadTestSource testSource(testData.c_str(), testData.length());
     BufferedReader bufReader;
     bufReader.init(&testSource, 4); // Intentionally small
 

@@ -6,23 +6,21 @@ using namespace Cupcake;
 BufferedWriter::BufferedWriter() :
     streamSource(nullptr),
     index(0),
-    bufferSize(0)
+    bufferLen(0)
 {}
 
-void BufferedWriter::init(StreamSource* initStreamSource, size_t initBufferSize) {
+void BufferedWriter::init(StreamSource* initStreamSource, uint32_t initBufferSize) {
     streamSource = initStreamSource;
-    bufferSize = bufferSize;
-    buffer.reset(new char[bufferSize]);
+    bufferLen = initBufferSize;
+    buffer.reset(new char[initBufferSize]);
 }
 
-std::tuple<uint32_t, HttpError> BufferedWriter::write(const char* writeBuf, uint32_t bufferLen) {
-    size_t avail = bufferSize - index;
-
+std::tuple<uint32_t, HttpError> BufferedWriter::write(const char* writeBuf, uint32_t inBufferLen) {
     // If it can fit in the buffer, copy it in
-    if (avail < bufferLen) {
-        std::memcpy(buffer.get() + index, writeBuf, bufferLen);
-        index += bufferLen;
-        return std::make_tuple(bufferLen, HttpError::Ok);
+    if (index < bufferLen) {
+        std::memcpy(buffer.get() + index, writeBuf, inBufferLen);
+        index += inBufferLen;
+        return std::make_tuple(inBufferLen, HttpError::Ok);
     }
 
     // If it can't fit, do a write of the existing data, and the new data
@@ -30,9 +28,16 @@ std::tuple<uint32_t, HttpError> BufferedWriter::write(const char* writeBuf, uint
     writeBufs[0].buffer = buffer.get();
     writeBufs[0].bufferLen = index;
     writeBufs[1].buffer = (char*)writeBuf;
-    writeBufs[1].bufferLen = bufferLen;
+    writeBufs[1].bufferLen = inBufferLen;
 
-    return streamSource->writev(writeBufs, 2);
+    uint32_t prevIndex = index;
+    uint32_t bytesWritten;
+    HttpError err;
+    std::tie(bytesWritten, err) = streamSource->writev(writeBufs, 2);
+    if (err == HttpError::Ok) {
+        index = 0;
+    }
+    return std::make_tuple(bytesWritten - prevIndex, err);
 }
 
 HttpError BufferedWriter::flush() {

@@ -19,7 +19,7 @@ public:
     BufferedWriter();
     ~BufferedWriter() = default;
 
-    void init(StreamSource* streamSource, size_t bufferSize);
+    void init(StreamSource* streamSource, uint32_t bufferSize);
 
     std::tuple<uint32_t, HttpError> write(const char* buffer, uint32_t bufferLen);
     HttpError flush();
@@ -30,8 +30,8 @@ private:
 
     StreamSource* streamSource;
     std::unique_ptr<char[]> buffer;
-    size_t index;
-    size_t bufferSize;
+    uint32_t index;
+    uint32_t bufferLen;
 };
 
 }
