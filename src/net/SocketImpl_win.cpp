@@ -123,8 +123,8 @@ int acceptExWithRetry(SOCKET socket,
             preparedSocket,
             addrBuffer,
             0,
-            sizeof(SOCKET_ADDRESS) + 16,
-            sizeof(SOCKET_ADDRESS) + 16,
+            sizeof(sockaddr_storage) + 16,
+            sizeof(sockaddr_storage) + 16,
             NULL,
             overlappedData);
 

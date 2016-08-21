@@ -27,8 +27,8 @@ public:
 
     bool addHandler(const StringRef path, HttpHandler handler);
 
-    // TODO: Add other variants
-    HttpError start(const SockAddr& sockAddr);
+    // Note: Delete ownership of the socket is NOT taken
+    HttpError start(StreamSource* streamSource);
 
     void shutdown();
 
@@ -38,7 +38,7 @@ private:
 
     HttpError acceptLoop();
 
-    std::unique_ptr<StreamSource> streamSource;
+    StreamSource* streamSource;
     HandlerMap handlerMap;
     bool started;
 };

@@ -7,6 +7,7 @@
 
 #include "unit/http/BufferedReader_test.h"
 #include "unit/http/BufferedWriter_test.h"
+#include "unit/http/Http1_test.h"
 #include "unit/text/String_test.h"
 #include "unit/text/Strconv_test.h"
 #include "unit/net/AddrInfo_test.h"
@@ -95,6 +96,13 @@ int main(int argc, const char** argv) {
     RUN_TEST(test_bufferedreader_readline);
     RUN_TEST(test_bufferedwriter_basic);
     RUN_TEST(test_bufferedwriter_flush);
+
+    RUN_TEST(test_http1_empty);
+    RUN_TEST(test_http1_contentlen_request);
+    RUN_TEST(test_http1_contentlen_response);
+    RUN_TEST(test_http1_chunked_request);
+    RUN_TEST(test_http1_chunked_response);
+    RUN_TEST(test_http1_keepalive);
 
     if (testRes) {
         printf("FAILURE: Not all tests passed.\n");
