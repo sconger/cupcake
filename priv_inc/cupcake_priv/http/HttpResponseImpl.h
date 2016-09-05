@@ -5,23 +5,35 @@
 #include "cupcake/http/Http.h"
 #include "cupcake/http/HttpError.h"
 
+#include "cupcake_priv/http/ContentLengthWriter.h"
 #include "cupcake_priv/http/StreamSource.h"
 
 namespace Cupcake {
 
 class HttpResponseImpl : public HttpResponse {
 public:
-    HttpResponseImpl(StreamSource& streamSource);
+    // TODO: Probably need more parameters to support 100 Continue properly
+    HttpResponseImpl(HttpVersion version, StreamSource* streamSource);
     HttpError setStatus(uint32_t code, StringRef statusText) override;
     HttpError addHeader(StringRef headerName, StringRef headerValue) override;
 
     HttpOutputStream& getOutputStream() const override;
 
+    HttpError addBlankLineIfNeeded();
+
 private:
+    enum class ResponseStatus;
+
     HttpResponseImpl(const HttpResponseImpl&) = delete;
     HttpResponseImpl& operator=(const HttpResponseImpl&) = delete;
 
-    StreamSource& streamSource;
+    HttpVersion version;
+    StreamSource* streamSource;
+    ResponseStatus respStatus;
+
+    HttpOutputStream* httpOutputStream;
+    ContentLengthWriter contentLengthWriter;
+    mutable bool bodyWritten;
 };
 
 }

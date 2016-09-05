@@ -20,17 +20,11 @@ std::tuple<uint32_t, HttpError> ContentLengthReader::read(char* buffer, uint32_t
         return std::make_tuple(0, HttpError::Eof);
     }
 
-    uint32_t readLen;
-   
-    if (contentLength < (uint64_t)std::numeric_limits<uint32_t>::max()) {
-        readLen = std::min((uint32_t)contentLength, bufferLen);
-    } else {
-        readLen = bufferLen;
-    }
+    uint32_t readLen = std::min((uint32_t)contentLength, bufferLen);
 
     uint32_t bytesRead;
     HttpError err;
-    std::tie(bytesRead, err) = bufReader.read(buffer, bufferLen);
+    std::tie(bytesRead, err) = bufReader.read(buffer, readLen);
     if (err == HttpError::Ok) {
         contentLength -= bytesRead;
     }

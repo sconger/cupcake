@@ -24,6 +24,7 @@ HttpError HttpServer::start(StreamSource* streamSource) {
     if (started) {
         return HttpError::InvalidState;
     }
+    started = true;
 
     this->streamSource = streamSource;
 
@@ -38,7 +39,9 @@ HttpError HttpServer::acceptLoop() {
         HttpError err;
         std::tie(acceptedSocket, err) = streamSource->accept();
 
-        if (err != HttpError::Ok) {
+        if (err == HttpError::StreamClosed) {
+            return HttpError::Ok;
+        } else if (err != HttpError::Ok) {
             return err;
         }
 
@@ -50,6 +53,7 @@ HttpError HttpServer::acceptLoop() {
             catch (...) {
                 // TODO: log
             }
+            acceptedSocket->close();
         });
     }
 }
@@ -61,5 +65,6 @@ void HttpServer::shutdown() {
 
     if (streamSource) {
         streamSource->close();
+        streamSource = nullptr;
     }
 }

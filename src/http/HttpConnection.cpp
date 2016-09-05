@@ -3,6 +3,7 @@
 
 #include "cupcake_priv/http/ContentLengthReader.h"
 #include "cupcake_priv/http/HttpRequestImpl.h"
+#include "cupcake_priv/http/HttpResponseImpl.h"
 #include "cupcake_priv/text/Strconv.h"
 
 #include <unordered_map>
@@ -65,14 +66,11 @@ HttpError HttpConnection::innerRun() {
             return err;
         }
 
-        if (line.length() != 0) {
-            break;
-        }
-
+        // Switches to body state on empty line
         if (!parseHeaderLine(line)) {
             return HttpError::ClientError;
         }
-    } while (true);
+    } while (state == HttpState::Headers);
 
     // Go through the headers so far and parse out special ones we need to pay attention to
     bool headersOkay = parseSpecialHeaders();
@@ -89,15 +87,37 @@ HttpError HttpConnection::innerRun() {
         return sendStatus(404, "Not Found");
     }
 
+    // Hack at the moment to get StringRef header values. Implement pool allocater later.
+    size_t headerCount = curHeaderNames.size();
+    std::vector<StringRef> headerNamesStringRef;
+    std::vector<StringRef> headerValuesStringRef;
+    headerNamesStringRef.reserve(headerCount);
+    headerValuesStringRef.reserve(headerCount);
+
+    for (size_t i = 0; i < headerCount; i++) {
+        headerNamesStringRef.push_back(curHeaderNames.at(i));
+        headerValuesStringRef.push_back(curHeaderValues.at(i));
+    }
+
     ContentLengthReader contentLengthReader(bufReader, contentLength);
 
     HttpRequestImpl requestImpl(curMethod,
         curUrl,
-        curHeaderNames, // TODO: StringRefs
-        curHeaderValues, // TODO: StringRefs
+        headerNamesStringRef,
+        headerValuesStringRef,
         contentLengthReader);
 
-    return HttpError::Ok;
+    HttpResponseImpl responseImpl(curVersion,
+        streamSource);
+
+    handler(requestImpl, responseImpl);
+
+    err = responseImpl.addBlankLineIfNeeded();
+    if (err != HttpError::Ok) {
+        return err;
+    }
+
+    return streamSource->close();
 }
 
 // TODO: Pass errors back
@@ -191,8 +211,8 @@ bool HttpConnection::parseHeaderLine(const StringRef line) {
     }
 
     StringRef headerValue = line.substring(colonIndex + 1, line.length());
-    while (headerName.startsWith(' ') ||
-           headerName.startsWith('\t')) {
+    while (headerValue.startsWith(' ') ||
+           headerValue.startsWith('\t')) {
         headerValue = headerValue.substring(1);
     }
 
@@ -237,16 +257,16 @@ bool HttpConnection::parseSpecialHeaders() {
 
 HttpError HttpConnection::sendStatus(uint32_t code, const StringRef reasonPhrase) {
     char codeBuffer[12];
-    int codeBytes = ::snprintf(codeBuffer, sizeof(codeBuffer), "%u", code);
+    size_t codeBytes = Strconv::uint32ToStr(code, codeBuffer, sizeof(codeBuffer));
     codeBuffer[codeBytes] = ' ';
 
-    // TODO: writev
-    HttpError err;
-    std::tie(std::ignore, err) = streamSource->write(codeBuffer, codeBytes+1);
-    if (err != HttpError::Ok) {
-        return err;
-    }
+    INet::IoBuffer ioBufs[2];
+    ioBufs[0].buffer = codeBuffer;
+    ioBufs[0].bufferLen = codeBytes + 1;
+    ioBufs[1].buffer = (char*)reasonPhrase.data();
+    ioBufs[1].bufferLen = (uint32_t)reasonPhrase.length();
 
-    std::tie(std::ignore, err) = streamSource->write(reasonPhrase.data(), reasonPhrase.length());
+    HttpError err;
+    std::tie(std::ignore, err) = streamSource->writev(ioBufs, 2);
     return err;
 }

@@ -18,7 +18,11 @@ std::tuple<StreamSource*, HttpError> StreamSourceSocket::accept() {
     SocketError err;
     std::tie(acceptedSocket, err) = socket.accept();
 
-    if (err != SocketError::Ok) {
+    // TODO: Probably want to push this into the socket implementations
+    if (err == SocketError::InvalidHandle ||
+        err == SocketError::OperationAborted) {
+        return std::make_tuple(nullptr, HttpError::StreamClosed);
+    } else if (err != SocketError::Ok) {
         return std::make_tuple(nullptr, HttpError::IoError);
     }
 

@@ -5,8 +5,8 @@ using namespace Cupcake;
 
 HttpRequestImpl::HttpRequestImpl(HttpMethod method,
     StringRef url,
-    std::vector<String>& headerNames,
-    std::vector<String>& headerValues,
+    std::vector<StringRef>& headerNames,
+    std::vector<StringRef>& headerValues,
     HttpInputStream& inputStream) :
     method(method),
     url(url),
@@ -28,16 +28,14 @@ uint32_t HttpRequestImpl::getHeaderCount() const {
 }
 
 std::tuple<StringRef, StringRef> HttpRequestImpl::getHeader(uint32_t index) const {
-    StringRef headerName(headerNames[index]);
-    StringRef headerValue(headerValues[index]);
-    return std::make_tuple(headerName, headerValue);
+    return std::make_tuple(headerNames[index], headerValues[index]);
 }
 
 std::tuple<StringRef, bool> HttpRequestImpl::getHeader(const StringRef headerName) const {
-    for (const String& testName : headerNames) {
-        StringRef testNameRef(testName);
+    for (size_t i = 0; i < headerNames.size(); i++) {
+        StringRef testNameRef(headerNames[i]); // TODO: Eliminate conversion
         if (testNameRef.engEqualsIgnoreCase(headerName)) {
-            return std::make_tuple(testNameRef, true);
+            return std::make_tuple(headerValues[i], true);
         }
     }
     return std::make_tuple(StringRef(), false);

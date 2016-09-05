@@ -16,7 +16,7 @@ enum class HttpError : uint32_t {
     InvalidState,
 
     // IO errors
-    ConnectionClosed,
+    StreamClosed,
     IoError,
     Eof,
 

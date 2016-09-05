@@ -72,7 +72,7 @@ std::tuple<StringRef, HttpError> BufferedReader::readLine(uint32_t maxLength) {
                 continue;
             }
 
-            if (i != endIndex - 1 && buffer[i - 1] == '\r') {
+            if (i != 0 && buffer[i - 1] == '\r') {
                 lineEndIndex = i - 1;
             } else {
                 lineEndIndex = i;

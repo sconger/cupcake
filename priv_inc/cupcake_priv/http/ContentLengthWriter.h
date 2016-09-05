@@ -10,17 +10,18 @@ namespace Cupcake {
 
 class ContentLengthWriter : public HttpOutputStream {
 public:
-    ContentLengthWriter(StreamSource& streamSource);
+    ContentLengthWriter(StreamSource* streamSource);
     ~ContentLengthWriter();
 
     std::tuple<uint32_t, HttpError> write(const char* buffer, uint32_t bufferLen) override;
+    HttpError flush() override;
     HttpError close() override;
 
 private:
     ContentLengthWriter(const ContentLengthWriter&) = delete;
     ContentLengthWriter& operator=(const ContentLengthWriter&) = delete;
 
-    StreamSource& streamSource;
+    StreamSource* streamSource;
 };
 
 }

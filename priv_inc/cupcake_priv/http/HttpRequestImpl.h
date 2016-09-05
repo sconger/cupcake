@@ -3,7 +3,7 @@
 #define CUPCAKE_HTTP_REQUEST_IMPL
 
 #include "cupcake/http/Http.h"
-#include "cupcake/text/String.h" // TODO: Remove
+#include "cupcake/text/StringRef.h"
 
 #include "cupcake_priv/http/ContentLengthReader.h"
 
@@ -16,8 +16,8 @@ class HttpRequestImpl : public HttpRequest {
 public:
     HttpRequestImpl(HttpMethod method,
         StringRef url,
-        std::vector<String>& headerNames, // TODO: StringRefs
-        std::vector<String>& headerValues, // TODO: StringRefs
+        std::vector<StringRef>& headerNames,
+        std::vector<StringRef>& headerValues,
         HttpInputStream& inputStream);
 
     const HttpMethod getMethod() const override;
@@ -32,8 +32,8 @@ public:
 private:
     HttpMethod method;
     StringRef url;
-    std::vector<String>& headerNames;
-    std::vector<String>& headerValues;
+    std::vector<StringRef>& headerNames;
+    std::vector<StringRef>& headerValues;
 
     HttpInputStream& inputStream;
 };
