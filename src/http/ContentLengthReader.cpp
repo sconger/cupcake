@@ -11,10 +11,6 @@ ContentLengthReader::ContentLengthReader(BufferedReader& bufReader, uint64_t con
     contentLength(contentLength)
 {}
 
-ContentLengthReader::~ContentLengthReader() {
-    close();
-}
-
 std::tuple<uint32_t, HttpError> ContentLengthReader::read(char* buffer, uint32_t bufferLen) {
     if (contentLength == 0) {
         return std::make_tuple(0, HttpError::Eof);
@@ -32,6 +28,6 @@ std::tuple<uint32_t, HttpError> ContentLengthReader::read(char* buffer, uint32_t
 }
 
 HttpError ContentLengthReader::close() {
-    // TODO: Cause return EOF on future reads?
+    // TODO: Skip content
     return HttpError::Ok;
 }

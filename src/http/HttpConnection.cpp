@@ -31,7 +31,8 @@ enum class HttpConnection::HttpState {
 HttpConnection::HttpConnection(StreamSource* streamSource, const HandlerMap* handlerMap) :
     streamSource(streamSource),
     handlerMap(handlerMap),
-    state(HttpState::Headers)
+    state(HttpState::Headers),
+    contentLength(0)
 {
     bufReader.init(streamSource, 2048); // TODO: Define read constant somewhere
 }

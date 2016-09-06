@@ -11,7 +11,7 @@ namespace Cupcake {
 class ContentLengthReader : public HttpInputStream {
 public:
     ContentLengthReader(BufferedReader& bufReader, uint64_t contentLength);
-    ~ContentLengthReader();
+    ~ContentLengthReader() = default;
 
     std::tuple<uint32_t, HttpError> read(char* buffer, uint32_t bufferLen) override;
     HttpError close() override;
