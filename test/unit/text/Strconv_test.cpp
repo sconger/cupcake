@@ -30,10 +30,11 @@ std::string asString(T value) {
 
 template<typename T>
 struct ToStrTestData {
-    ToStrTestData(T val, const char* expected) : val(val), expected(expected) {}
-    ToStrTestData(T val, std::string expected) : val(val), expected(expected) {}
+    ToStrTestData(T val, uint32_t radix, const char* expected) : val(val), radix(radix), expected(expected) {}
+    ToStrTestData(T val, uint32_t radix, std::string expected) : val(val), radix(radix), expected(expected) {}
 
     T val;
+    uint32_t radix;
     std::string expected;
 };
 
@@ -52,15 +53,19 @@ bool test_strconv_int32ToStr() {
     size_t len;
 
     std::vector<ToStrTestData<int32_t>> testDataList{
-        ToStrTestData<int32_t>(0, "0"),
-        ToStrTestData<int32_t>(123, "123"),
-        ToStrTestData<int32_t>(-4567, "-4567"),
-        ToStrTestData<int32_t>(std::numeric_limits<int32_t>::max(), asString(std::numeric_limits<int32_t>::max())),
-        ToStrTestData<int32_t>(std::numeric_limits<int32_t>::min(), asString(std::numeric_limits<int32_t>::min())),
+        ToStrTestData<int32_t>(0, 10, "0"),
+        ToStrTestData<int32_t>(123, 10, "123"),
+        ToStrTestData<int32_t>(-4567, 10, "-4567"),
+        ToStrTestData<int32_t>(std::numeric_limits<int32_t>::max(), 10, asString(std::numeric_limits<int32_t>::max())),
+        ToStrTestData<int32_t>(std::numeric_limits<int32_t>::min(), 10, asString(std::numeric_limits<int32_t>::min())),
+        ToStrTestData<int32_t>(-16, 2, "-10000"),
+        ToStrTestData<int32_t>(-16, 7, "-22"),
+        ToStrTestData<int32_t>(0xabcd, 16, "ABCD"),
+        ToStrTestData<int32_t>(std::numeric_limits<int32_t>::min(), 8, "-20000000000"),
     };
 
     for (const ToStrTestData<int32_t>& testData : testDataList) {
-        len = Strconv::int32ToStr(testData.val, buffer, sizeof(buffer));
+        len = Strconv::int32ToStr(testData.val, testData.radix, buffer, sizeof(buffer));
         if (!checkString(testData.expected.c_str(), buffer, len)) {
             testf("Did not get expected value for: %s", testData.expected.c_str());
             return false;
@@ -74,15 +79,19 @@ bool test_strconv_int64ToStr() {
     size_t len;
 
     std::vector<ToStrTestData<int64_t>> testDataList{
-        ToStrTestData<int64_t>(0, "0"),
-        ToStrTestData<int64_t>(123, "123"),
-        ToStrTestData<int64_t>(-4567, "-4567"),
-        ToStrTestData<int64_t>(std::numeric_limits<int64_t>::max(), asString(std::numeric_limits<int64_t>::max())),
-        ToStrTestData<int64_t>(std::numeric_limits<int64_t>::min(), asString(std::numeric_limits<int64_t>::min())),
+        ToStrTestData<int64_t>(0, 10, "0"),
+        ToStrTestData<int64_t>(123, 10, "123"),
+        ToStrTestData<int64_t>(-4567, 10, "-4567"),
+        ToStrTestData<int64_t>(std::numeric_limits<int64_t>::max(), 10, asString(std::numeric_limits<int64_t>::max())),
+        ToStrTestData<int64_t>(std::numeric_limits<int64_t>::min(), 10, asString(std::numeric_limits<int64_t>::min())),
+        ToStrTestData<int64_t>(-16, 2, "-10000"),
+        ToStrTestData<int64_t>(-16, 7, "-22"),
+        ToStrTestData<int64_t>(0xabcd, 16, "ABCD"),
+        ToStrTestData<int64_t>(std::numeric_limits<int64_t>::min(), 8, "-1000000000000000000000"),
     };
 
     for (const ToStrTestData<int64_t>& testData : testDataList) {
-        len = Strconv::int64ToStr(testData.val, buffer, sizeof(buffer));
+        len = Strconv::int64ToStr(testData.val, testData.radix, buffer, sizeof(buffer));
         if (!checkString(testData.expected.c_str(), buffer, len)) {
             testf("Did not get expected value for: %s", testData.expected.c_str());
             return false;
@@ -96,14 +105,16 @@ bool test_strconv_uint32ToStr() {
     size_t len;
 
     std::vector<ToStrTestData<uint32_t>> testDataList{
-        ToStrTestData<uint32_t>(0, "0"),
-        ToStrTestData<uint32_t>(123, "123"),
-        ToStrTestData<uint32_t>(1111111, "1111111"),
-        ToStrTestData<uint32_t>(std::numeric_limits<uint32_t>::max(), asString(std::numeric_limits<uint32_t>::max())),
+        ToStrTestData<uint32_t>(0, 10, "0"),
+        ToStrTestData<uint32_t>(123, 10, "123"),
+        ToStrTestData<uint32_t>(1111111, 10, "1111111"),
+        ToStrTestData<uint32_t>(std::numeric_limits<uint32_t>::max(), 10, asString(std::numeric_limits<uint32_t>::max())),
+        ToStrTestData<uint32_t>(0xabcd, 16, "ABCD"),
+        ToStrTestData<uint32_t>(01234, 8, "1234"),
     };
 
     for (const ToStrTestData<uint32_t>& testData : testDataList) {
-        len = Strconv::uint32ToStr(testData.val, buffer, sizeof(buffer));
+        len = Strconv::uint32ToStr(testData.val, testData.radix, buffer, sizeof(buffer));
         if (!checkString(testData.expected.c_str(), buffer, len)) {
             testf("Did not get expected value for: %s", testData.expected.c_str());
             return false;
@@ -117,14 +128,16 @@ bool test_strconv_uint64ToStr() {
     size_t len;
 
     std::vector<ToStrTestData<uint64_t>> testDataList{
-        ToStrTestData<uint64_t>(0, "0"),
-        ToStrTestData<uint64_t>(123, "123"),
-        ToStrTestData<uint64_t>(1111111, "1111111"),
-        ToStrTestData<uint64_t>(std::numeric_limits<uint64_t>::max(), asString(std::numeric_limits<uint64_t>::max())),
+        ToStrTestData<uint64_t>(0, 10, "0"),
+        ToStrTestData<uint64_t>(123, 10, "123"),
+        ToStrTestData<uint64_t>(1111111, 10, "1111111"),
+        ToStrTestData<uint64_t>(std::numeric_limits<uint64_t>::max(), 10, asString(std::numeric_limits<uint64_t>::max())),
+        ToStrTestData<uint64_t>(0xabcd, 16, "ABCD"),
+        ToStrTestData<uint64_t>(01234, 8, "1234"),
     };
 
     for (const ToStrTestData<uint64_t>& testData : testDataList) {
-        len = Strconv::uint64ToStr(testData.val, buffer, sizeof(buffer));
+        len = Strconv::uint64ToStr(testData.val, testData.radix, buffer, sizeof(buffer));
         if (!checkString(testData.expected.c_str(), buffer, len)) {
             testf("Did not get expected value for: %s", testData.expected.c_str());
             return false;

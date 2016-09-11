@@ -3,6 +3,7 @@
 #include "cupcake_priv/text/Strconv.h"
 
 #include <algorithm>
+#include <cstdlib>
 
 static
 int8_t charValue[256] = {
@@ -23,6 +24,9 @@ int8_t charValue[256] = {
     -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, // E0-EF
     -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1  // F0-FF
 };
+
+static
+const char* valueAsChar = "0123456789ABCDEF";
 
 static
 const char two_digit_lookup[201] =
@@ -53,6 +57,47 @@ const char two_digit_lookup[201] =
 #define UINT32_MAX_LEN 10 // 4294967295
 #define UINT64_MAX_LEN 20 // 18446744073709551615
 
+static
+const char* int32_min_values[] = {
+    nullptr,
+    nullptr,
+    "-10000000000000000000000000000000",
+    "-12112122212110202102",
+    "-2000000000000000",
+    "-13344223434043",
+    "-553032005532",
+    "-104134211162",
+    "-20000000000",
+    "-5478773672",
+    "-2147483648",
+    "-A02220282",
+    "-4BB2308A8",
+    "-282BA4AAB",
+    "-1652CA932",
+    "-C87E66B8",
+    "-80000000",
+};
+
+static
+const char* int64_min_values[] = {
+    nullptr,
+    nullptr,
+    "-1000000000000000000000000000000000000000000000000000000000000000",
+    "-2021110011022210012102010021220101220102",
+    "-20000000000000000000000000000000",
+    "-1104332401304422434310310040",
+    "-1540241003031030222122212",
+    "-22341010611245052050614",
+    "-1000000000000000000000",
+    "-67404283172107811766",
+    "-9223372036854775808",
+    "-1728002635214590966",
+    "-41A792678515120368",
+    "-10B269549075433515",
+    "-4340724C6C71DC7A8",
+    "-160E2AD324636666D",
+    "-8000000000000000",
+};
 
 // Integer to string helper functions
 // See: https://www.facebook.com/notes/facebook-engineering/three-optimization-tips-for-c/10151361643253920
@@ -170,36 +215,193 @@ size_t int64ToStr(int64_t value, char* buffer) {
     }
 }
 
+// Less efficient varients that allow any radix
+
+static
+size_t uint32ToStr(uint32_t value, uint32_t radix, char* buffer) {
+    unsigned char values[32]; // Worst case is base2
+    size_t length = 0;
+
+    while (value > 0) {
+        values[length] = value % radix;
+        value /= radix;
+        length++;
+    }
+
+    // Fill in backward as it's in reverse order
+    for (size_t i = 0, j = length-1; i < length; i++, j--) {
+        buffer[i] = valueAsChar[values[j]];
+    }
+
+    return length;
+}
+
+static
+size_t uint64ToStr(uint64_t value, uint32_t radix, char* buffer) {
+    unsigned char values[64]; // Worst case is base2
+    size_t length = 0;
+
+    while (value > 0) {
+        values[length] = value % radix;
+        value /= radix;
+        length++;
+    }
+
+    // Fill in backward as it's in reverse order
+    for (size_t i = 0, j = length - 1; i < length; i++, j--) {
+        buffer[i] = valueAsChar[values[j]];
+    }
+
+    return length;
+}
+
+static
+size_t int32ToStr(int32_t value, int32_t radix, char* buffer) {
+    if (value == INT32_MIN) {
+        // Not computable with conventional method, so just look the answer up
+        const char* str = int32_min_values[radix];
+        size_t len = std::strlen(str);
+        std::memcpy(buffer, str, len);
+        return len;
+    } else if (value >= 0) {
+        return uint32ToStr((uint32_t)value, radix, buffer);
+    } else {
+        buffer[0] = '-';
+        return uint32ToStr((uint32_t)(value * -1), radix, buffer + 1) + 1;
+    }
+}
+
+static
+size_t int64ToStr(int64_t value, int32_t radix, char* buffer) {
+    if (value == INT64_MIN) {
+        // Not computable with conventional method, so just look the answer up
+        const char* str = int64_min_values[radix];
+        size_t len = std::strlen(str);
+        std::memcpy(buffer, str, len);
+        return len;
+    } else if (value >= 0) {
+        return uint64ToStr((uint64_t)value, radix, buffer);
+    } else {
+        buffer[0] = '-';
+        return uint64ToStr((uint64_t)(value * -1), radix, buffer + 1) + 1;
+    }
+}
+
 namespace Cupcake {
 
 namespace Strconv {
 
 size_t int32ToStr(int32_t value, char* buffer, size_t bufferLen) {
     char tempBuf[INT32_MAX_LEN];
-    size_t size = ::int32ToStr(value, tempBuf);
-    ::memcpy(buffer, tempBuf, std::min(size, bufferLen));
-    return size;
+
+    if (bufferLen >= sizeof(tempBuf)) {
+        return ::int32ToStr(value, buffer);
+    } else {
+        size_t size = ::int32ToStr(value, tempBuf);
+        std::memcpy(buffer, tempBuf, std::min(size, bufferLen));
+        return size;
+    }
 }
 
 size_t int64ToStr(int64_t value, char* buffer, size_t bufferLen) {
     char tempBuf[INT64_MAX_LEN];
-    size_t size = ::int64ToStr(value, tempBuf);
-    ::memcpy(buffer, tempBuf, std::min(size, bufferLen));
-    return size;
+
+    if (bufferLen >= sizeof(tempBuf)) {
+        return ::int64ToStr(value, buffer);
+    } else {
+        size_t size = ::int64ToStr(value, tempBuf);
+        std::memcpy(buffer, tempBuf, std::min(size, bufferLen));
+        return size;
+    }
 }
 
 size_t uint32ToStr(uint32_t value, char* buffer, size_t bufferLen) {
     char tempBuf[UINT32_MAX_LEN];
-    size_t size = ::uint32ToStr(value, tempBuf);
-    ::memcpy(buffer, tempBuf, std::min(size, bufferLen));
-    return size;
+
+    if (bufferLen >= sizeof(tempBuf)) {
+        return ::uint32ToStr(value, buffer);
+    } else {
+        size_t size = ::uint32ToStr(value, tempBuf);
+        std::memcpy(buffer, tempBuf, std::min(size, bufferLen));
+        return size;
+    }
 }
 
 size_t uint64ToStr(uint64_t value, char* buffer, size_t bufferLen) {
     char tempBuf[UINT64_MAX_LEN];
-    size_t size = ::uint64ToStr(value, tempBuf);
-    ::memcpy(buffer, tempBuf, std::min(size, bufferLen));
-    return size;
+
+    if (bufferLen >= sizeof(tempBuf)) {
+        return ::uint64ToStr(value, buffer);
+    } else {
+        size_t size = ::uint64ToStr(value, tempBuf);
+        std::memcpy(buffer, tempBuf, std::min(size, bufferLen));
+        return size;
+    }
+}
+
+size_t int32ToStr(int32_t value, uint32_t radix, char* buffer, size_t bufferLen) {
+    if (radix == 10) {
+        return int32ToStr(value, buffer, bufferLen);
+    }
+
+    char tempBuf[33];
+
+    if (bufferLen >= sizeof(tempBuf)) {
+        return ::int32ToStr(value, radix, buffer);
+    } else {
+        size_t size = ::int32ToStr(value, radix, tempBuf);
+        std::memcpy(buffer, tempBuf, std::min(size, bufferLen));
+        return size;
+    }
+}
+
+size_t int64ToStr(int64_t value, uint32_t radix, char* buffer, size_t bufferLen) {
+    if (radix == 10) {
+        return int64ToStr(value, buffer, bufferLen);
+    }
+
+    char tempBuf[65];
+
+    if (bufferLen >= sizeof(tempBuf)) {
+        return ::int64ToStr(value, radix, buffer);
+    } else {
+        size_t size = ::int64ToStr(value, radix, tempBuf);
+        std::memcpy(buffer, tempBuf, std::min(size, bufferLen));
+        return size;
+    }
+}
+
+size_t uint32ToStr(uint32_t value, uint32_t radix, char* buffer, size_t bufferLen) {
+    if (radix == 10) {
+        return uint32ToStr(value, buffer, bufferLen);
+    }
+
+    char tempBuf[32];
+
+    if (bufferLen >= sizeof(tempBuf)) {
+        return ::uint32ToStr(value, radix, buffer);
+    } else {
+        size_t size = ::uint32ToStr(value, radix, tempBuf);
+        std::memcpy(buffer, tempBuf, std::min(size, bufferLen));
+        return size;
+    }
+}
+
+size_t uint64ToStr(uint64_t value, uint32_t radix, char* buffer, size_t bufferLen) {
+    if (radix == 10) {
+        return uint64ToStr(value, buffer, bufferLen);
+    }
+
+    char tempBuf[64];
+
+    if (bufferLen >= sizeof(tempBuf)) {
+        return ::uint64ToStr(value, radix, buffer);
+    } else {
+        char tempBuf[64];
+        size_t size = ::uint64ToStr(value, radix, tempBuf);
+        std::memcpy(buffer, tempBuf, std::min(size, bufferLen));
+        return size;
+    }
 }
 
 std::tuple<int32_t, bool> parseInt32(const StringRef str, uint32_t radix) {
