@@ -187,7 +187,7 @@ ptrdiff_t StringRef::indexOf(char c) const {
 ptrdiff_t StringRef::indexOf(char c, size_t startIndex) const {
     const char* start = data();
 
-    const char* match = std::strchr(start + startIndex, (int)c);
+    const char* match = (const char*)std::memchr(start + startIndex, (int)c, len-startIndex);
     if (match == nullptr) {
         return -1;
     }

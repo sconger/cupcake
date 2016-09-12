@@ -7,6 +7,8 @@
 
 #include "unit/http/BufferedReader_test.h"
 #include "unit/http/BufferedWriter_test.h"
+#include "unit/http/ChunkedReader_test.h"
+#include "unit/http/ChunkedWriter_test.h"
 #include "unit/http/Http1_test.h"
 #include "unit/text/String_test.h"
 #include "unit/text/Strconv_test.h"
@@ -96,6 +98,14 @@ int main(int argc, const char** argv) {
     RUN_TEST(test_bufferedreader_readline);
     RUN_TEST(test_bufferedwriter_basic);
     RUN_TEST(test_bufferedwriter_flush);
+
+    RUN_TEST(test_chunkedreader_basic);
+    RUN_TEST(test_chunkedreader_empty);
+    RUN_TEST(test_chunkedreader_bad_data_line);
+    RUN_TEST(test_chunkedreader_extension);
+    RUN_TEST(test_chunkedreader_trailing_headers);
+    RUN_TEST(test_chunkedwriter_basic);
+    RUN_TEST(test_chunkedwriter_empty);
 
     RUN_TEST(test_http1_empty);
     RUN_TEST(test_http1_contentlen_request);
