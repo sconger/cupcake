@@ -56,87 +56,93 @@ HttpError HttpConnection::innerRun() {
     HttpError err;
     StringRef line;
 
-    // Read the request line
-    std::tie(line, err) = bufReader.readLine(64 * 1024); // TODO: Define limit somewhere
-    if (err != HttpError::Ok) {
-        return err;
-    }
-
-    if (!parseRequestLine(line)) {
-        return HttpError::ClientError;
-    }
-
-    // Read the headers
     do {
-        std::tie(line, err) = bufReader.readLine(1 * 1024 * 1024); // TODO: Define limit somewhere
+        curHeaderNames.clear();
+        curHeaderValues.clear();
+
+        // Read the request line
+        std::tie(line, err) = bufReader.readLine(64 * 1024); // TODO: Define limit somewhere
         if (err != HttpError::Ok) {
             return err;
         }
 
-        // Switches to body state on empty line
-        if (!parseHeaderLine(line)) {
+        if (!parseRequestLine(line)) {
             return HttpError::ClientError;
         }
-    } while (state == HttpState::Headers);
 
-    // Go through the headers so far and parse out special ones we need to pay attention to
-    bool headersOkay = parseSpecialHeaders();
+        // Read the headers
+        do {
+            std::tie(line, err) = bufReader.readLine(1 * 1024 * 1024); // TODO: Define limit somewhere
+            if (err != HttpError::Ok) {
+                return err;
+            }
 
-    if (!headersOkay) {
-        return HttpError::ClientError;
-    }
+            // Switches to body state on empty line
+            if (!parseHeaderLine(line)) {
+                return HttpError::ClientError;
+            }
+        } while (state == HttpState::Headers);
 
-    // Deal with contradictory headers
-    headerFixup();
+        // Go through the headers so far and parse out special ones we need to pay attention to
+        bool headersOkay = parseSpecialHeaders();
 
-    HttpHandler handler;
-    bool foundHandler;
-    std::tie(handler, foundHandler) = handlerMap->getHandler(curUrl);
+        if (!headersOkay) {
+            return HttpError::ClientError;
+        }
 
-    if (!foundHandler) {
-        return sendStatus(404, "Not Found");
-    }
+        // Deal with contradictory headers
+        headerFixup();
 
-    // Hack at the moment to get StringRef header values. Implement pool allocater later.
-    size_t headerCount = curHeaderNames.size();
-    std::vector<StringRef> headerNamesStringRef;
-    std::vector<StringRef> headerValuesStringRef;
-    headerNamesStringRef.reserve(headerCount);
-    headerValuesStringRef.reserve(headerCount);
+        HttpHandler handler;
+        bool foundHandler;
+        std::tie(handler, foundHandler) = handlerMap->getHandler(curUrl);
 
-    for (size_t i = 0; i < headerCount; i++) {
-        headerNamesStringRef.push_back(curHeaderNames.at(i));
-        headerValuesStringRef.push_back(curHeaderValues.at(i));
-    }
+        if (!foundHandler) {
+            return sendStatus(404, "Not Found");
+        }
 
-    ChunkedReader chunkedReader(bufReader);
-    ContentLengthReader contentLengthReader(bufReader, contentLength);
-    NullReader nullReader;
+        // Hack at the moment to get StringRef header values. Implement pool allocater later.
+        size_t headerCount = curHeaderNames.size();
+        std::vector<StringRef> headerNamesStringRef;
+        std::vector<StringRef> headerValuesStringRef;
+        headerNamesStringRef.reserve(headerCount);
+        headerValuesStringRef.reserve(headerCount);
 
-    HttpInputStream* inputStream;
-    if (isChunked) {
-        inputStream = &chunkedReader;
-    } else if (hasContentLength) {
-        inputStream = &contentLengthReader;
-    } else {
-        inputStream = &nullReader;
-    }
+        for (size_t i = 0; i < headerCount; i++) {
+            headerNamesStringRef.push_back(curHeaderNames.at(i));
+            headerValuesStringRef.push_back(curHeaderValues.at(i));
+        }
 
-    HttpRequestImpl requestImpl(curMethod,
-        curUrl,
-        headerNamesStringRef,
-        headerValuesStringRef,
-        *inputStream);
+        ChunkedReader chunkedReader(bufReader);
+        ContentLengthReader contentLengthReader(bufReader, contentLength);
+        NullReader nullReader;
 
-    HttpResponseImpl responseImpl(curVersion,
-        streamSource);
+        HttpInputStream* inputStream;
+        if (isChunked) {
+            inputStream = &chunkedReader;
+        } else if (hasContentLength) {
+            inputStream = &contentLengthReader;
+        } else {
+            inputStream = &nullReader;
+        }
 
-    handler(requestImpl, responseImpl);
+        HttpRequestImpl requestImpl(curMethod,
+            curUrl,
+            headerNamesStringRef,
+            headerValuesStringRef,
+            *inputStream);
 
-    err = responseImpl.addBlankLineIfNeeded();
-    if (err != HttpError::Ok) {
-        return err;
-    }
+        HttpResponseImpl responseImpl(curVersion,
+            streamSource);
+
+        handler(requestImpl, responseImpl);
+
+        err = responseImpl.addBlankLineIfNeeded();
+        if (err != HttpError::Ok) {
+            return err;
+        }
+
+    } while (keepAlive);
 
     return streamSource->close();
 }
@@ -267,7 +273,7 @@ bool HttpConnection::parseSpecialHeaders() {
             std::tie(contentLength, validNumber) = Strconv::parseUint64(curHeaderValues[i]);
 
             if (!validNumber) {
-                sendStatus(400, "Invalid Content-Length");
+                sendStatus(400, "Invalid Content-Length header");
                 return false;
             }
             hasContentLength = true;
@@ -286,10 +292,11 @@ bool HttpConnection::parseSpecialHeaders() {
                 if (connectionNext.engEqualsIgnoreCase("close")) {
                     closeFound = true;
                     keepAlive = false;
-                } else if (connectionNext.engCompareIgnoreCase("keep-alive")) {
+                } else if (connectionNext.engEqualsIgnoreCase("keep-alive")) {
                     keepAliveFound = true;
                     keepAlive = true;
                 }
+                connectionNext = connectionIter.next();
             }
 
             if (closeFound && keepAliveFound) {
@@ -315,35 +322,15 @@ HttpError HttpConnection::sendStatus(uint32_t code, const StringRef reasonPhrase
     size_t codeBytes = Strconv::uint32ToStr(code, codeBuffer, sizeof(codeBuffer));
     codeBuffer[codeBytes] = ' ';
 
-    INet::IoBuffer ioBufs[2];
+    INet::IoBuffer ioBufs[3];
     ioBufs[0].buffer = codeBuffer;
     ioBufs[0].bufferLen = codeBytes + 1;
     ioBufs[1].buffer = (char*)reasonPhrase.data();
     ioBufs[1].bufferLen = (uint32_t)reasonPhrase.length();
+    ioBufs[2].buffer = "\r\n\r\n";
+    ioBufs[2].bufferLen = 4;
 
     HttpError err;
-    std::tie(std::ignore, err) = streamSource->writev(ioBufs, 2);
+    std::tie(std::ignore, err) = streamSource->writev(ioBufs, 3);
     return err;
-}
-
-/* Helper to trim HTTP header whitespace. RFC 7230 defines that as spaces or horizontal tabs. */
-StringRef HttpConnection::trimWhitespace(const StringRef strRef) const {
-    size_t len = strRef.length();
-    size_t startIndex = 0;
-
-    while (startIndex < len &&
-           (strRef.charAt(startIndex) == ' ' ||
-            strRef.charAt(startIndex) == '\t')) {
-        startIndex++;
-    }
-
-    size_t endIndex = strRef.length() - 1;
-
-    while (endIndex != startIndex &&
-           (strRef.charAt(endIndex) == ' ' ||
-            strRef.charAt(endIndex) == '\t')) {
-        endIndex--;
-    }
-
-    return strRef.substring(startIndex, endIndex);
 }

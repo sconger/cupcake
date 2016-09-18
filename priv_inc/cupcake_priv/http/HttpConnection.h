@@ -38,7 +38,6 @@ private:
     bool parseSpecialHeaders();
     void headerFixup();
     HttpError sendStatus(uint32_t code, const StringRef reasonPhrase);
-    StringRef trimWhitespace(const StringRef strRef) const;
 
     const HandlerMap* handlerMap;
     BufferedReader bufReader;

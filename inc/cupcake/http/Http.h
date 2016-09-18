@@ -61,7 +61,7 @@ public:
     virtual HttpError setStatus(uint32_t code, StringRef statusText) = 0;
     virtual HttpError addHeader(StringRef headerName, StringRef headerValue) = 0;
 
-    virtual HttpOutputStream& getOutputStream() const = 0;
+    virtual std::tuple<HttpOutputStream*, HttpError> getOutputStream() = 0;
 };
 
 typedef std::function<void(HttpRequest& request, HttpResponse& response)> HttpHandler;

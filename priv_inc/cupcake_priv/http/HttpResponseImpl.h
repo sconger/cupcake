@@ -5,6 +5,7 @@
 #include "cupcake/http/Http.h"
 #include "cupcake/http/HttpError.h"
 
+#include "cupcake_priv/http/ChunkedWriter.h"
 #include "cupcake_priv/http/ContentLengthWriter.h"
 #include "cupcake_priv/http/StreamSource.h"
 
@@ -17,7 +18,7 @@ public:
     HttpError setStatus(uint32_t code, StringRef statusText) override;
     HttpError addHeader(StringRef headerName, StringRef headerValue) override;
 
-    HttpOutputStream& getOutputStream() const override;
+    std::tuple<HttpOutputStream*, HttpError> getOutputStream() override;
 
     HttpError addBlankLineIfNeeded();
 
@@ -33,6 +34,9 @@ private:
 
     HttpOutputStream* httpOutputStream;
     ContentLengthWriter contentLengthWriter;
+    ChunkedWriter chunkedWriter;
+    bool setContentLength;
+    bool setTeChunked;
     mutable bool bodyWritten;
 };
 

@@ -14,11 +14,13 @@ enum class HttpError : uint32_t {
 
     // Generic errors
     InvalidState,
+    InvalidHeader,
 
     // IO errors
     StreamClosed,
     IoError,
     Eof,
+    ContentLengthExceeded,
 
     // Parsing errors
     LineTooLong,

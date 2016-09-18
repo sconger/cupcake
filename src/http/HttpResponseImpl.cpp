@@ -1,6 +1,7 @@
 
 #include "cupcake_priv/http/HttpResponseImpl.h"
 
+#include "cupcake_priv/http/CommaListIterator.h"
 #include "cupcake_priv/text/Strconv.h"
 
 using namespace Cupcake;
@@ -16,8 +17,11 @@ HttpResponseImpl::HttpResponseImpl(HttpVersion version, StreamSource* streamSour
     streamSource(streamSource),
     respStatus(ResponseStatus::NEW),
     httpOutputStream(nullptr),
-    contentLengthWriter(streamSource),
-    bodyWritten(false)
+    contentLengthWriter(),
+    chunkedWriter(),
+    bodyWritten(false),
+    setContentLength(false),
+    setTeChunked(false)
 {}
 
 HttpError HttpResponseImpl::setStatus(uint32_t code, StringRef statusText) {
@@ -49,7 +53,28 @@ HttpError HttpResponseImpl::setStatus(uint32_t code, StringRef statusText) {
 }
 
 HttpError HttpResponseImpl::addHeader(StringRef headerName, StringRef headerValue) {
-    // TODO: Detect chunked header
+    // If it's a Content-Length header, parse it and initialize the writer
+    if (headerName.engEqualsIgnoreCase("Content-Length")) {
+        if (setContentLength) {
+            return HttpError::InvalidHeader;
+        }
+
+        uint64_t contentLength;
+        bool validNumber;
+        std::tie(contentLength, validNumber) = Strconv::parseUint64(headerValue);
+
+        if (!validNumber) {
+            return HttpError::InvalidHeader;
+        }
+
+        contentLengthWriter.init(streamSource, contentLength);
+        httpOutputStream = &contentLengthWriter;
+        setContentLength = true;
+    } else if (headerName.engEqualsIgnoreCase("Transfer-Encoding")) {
+        // Considered chunked if the last value in the comma separated list is "chunked"
+        CommaListIterator commaIter(headerValue);
+        setTeChunked = commaIter.getLast().engEqualsIgnoreCase("chunked");
+    }
 
     INet::IoBuffer ioBufs[4];
     ioBufs[0].buffer = (char*)headerName.data();
@@ -58,7 +83,7 @@ HttpError HttpResponseImpl::addHeader(StringRef headerName, StringRef headerValu
     ioBufs[1].bufferLen = 2;
     ioBufs[2].buffer = (char*)headerValue.data();
     ioBufs[2].bufferLen = (uint32_t)headerValue.length();
-    ioBufs[3].buffer = "/r/n";
+    ioBufs[3].buffer = "\r\n";
     ioBufs[3].bufferLen = 2;
 
     HttpError err;
@@ -66,9 +91,24 @@ HttpError HttpResponseImpl::addHeader(StringRef headerName, StringRef headerValu
     return err;
 }
 
-HttpOutputStream& HttpResponseImpl::getOutputStream() const {
+std::tuple<HttpOutputStream*, HttpError> HttpResponseImpl::getOutputStream() {
+    HttpError err = HttpError::Ok;
     bodyWritten = true;
-    return *httpOutputStream;
+
+    // If the user did not set chunked transfer encoding, add that header
+    if (httpOutputStream != &contentLengthWriter &&
+        !setTeChunked) {
+        err = addHeader("Transfer-Encoding", "Chunked");
+        if (err != HttpError::Ok) {
+            return std::make_tuple(httpOutputStream, err);
+        }
+
+        chunkedWriter.init(streamSource);
+        httpOutputStream = &chunkedWriter;
+    }
+
+    std::tie(std::ignore, err) = streamSource->write("\r\n", 2);
+    return std::make_tuple(httpOutputStream, err);
 }
 
 HttpError HttpResponseImpl::addBlankLineIfNeeded() {

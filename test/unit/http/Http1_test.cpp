@@ -9,6 +9,7 @@
 #include "cupcake_priv/http/StreamSourceSocket.h"
 
 #include <condition_variable>
+#include <vector>
 
 using namespace Cupcake;
 
@@ -410,5 +411,116 @@ bool test_http1_chunked_response() {
 }
 
 bool test_http1_keepalive() {
+    Socket acceptSocket;
+    HttpServer server;
+    HttpError serverError;
+    std::mutex serverMutex;
+    std::condition_variable serverCond;
+    bool isShutdown = false;
+
+    SocketError socketErr = initAcceptingSocket(acceptSocket, Addrinfo::getLoopback(INet::Protocol::Ipv6, 0));
+    if (socketErr != SocketError::Ok) {
+        testf("Failed to bind socket for accept with: %d", socketErr);
+        return false;
+    }
+
+    uint16_t boundPort = acceptSocket.getLocalAddress().getPort();
+    StreamSourceSocket streamSource(std::move(acceptSocket));
+
+    server.addHandler("/index.html", [](HttpRequest& request, HttpResponse& response) {
+        response.setStatus(200, "OK");
+        response.addHeader("Content-Length", "11");
+
+        HttpOutputStream* outputStream;
+        std::tie(outputStream, std::ignore) = response.getOutputStream();
+        outputStream->write("Hello World", 11);
+        outputStream->close();
+    });
+
+    Async::runAsync([&streamSource, &server, &serverError, &serverMutex, &serverCond, &isShutdown] {
+        HttpError err = server.start(&streamSource);
+
+        std::unique_lock<std::mutex> lock(serverMutex);
+        isShutdown = true;
+        serverError = err;
+        serverCond.notify_one();
+    });
+
+    uint32_t bytesXfer;
+    std::vector<StringRef> requests = {
+        "GET /index.html HTTP/1.0\r\n"
+        "Connection: keep-alive\r\n"
+        "\r\n"
+        "GET /index.html HTTP/1.0\r\n"
+        "\r\n",
+        "GET /index.html HTTP/1.0\r\n"
+        "Connection: close\r\n"
+        "\r\n"
+        "GET /index.html HTTP/1.0\r\n"
+        "\r\n",
+        "GET /index.html HTTP/1.0\r\n"
+        "\r\n"
+        "GET /index.html HTTP/1.0\r\n"
+        "\r\n",
+    };
+    std::vector<StringRef> expectedResponses = {
+        "HTTP/1.0 200 OK\r\nContent-Length: 11\r\n\r\nHello World"
+        "HTTP/1.0 200 OK\r\nContent-Length: 11\r\n\r\nHello World",
+        "HTTP/1.0 200 OK\r\nContent-Length: 11\r\n\r\nHello World",
+        "HTTP/1.0 200 OK\r\nContent-Length: 11\r\n\r\nHello World",
+    };
+
+    for (size_t i = 0; i < requests.size(); i++) {
+        StringRef request = requests[i];
+        StringRef expectedResponse = expectedResponses[i];
+
+        char responseBuffer[1024];
+
+        Socket requestSocket;
+        socketErr = requestSocket.init(INet::Protocol::Ipv6);
+        if (socketErr != SocketError::Ok) {
+            testf("Failed to init socket with: %d", socketErr);
+            return false;
+        }
+        socketErr = requestSocket.connect(Addrinfo::getLoopback(INet::Protocol::Ipv6, boundPort));
+        if (socketErr != SocketError::Ok) {
+            testf("Failed to connect to HTTP socket with: %d", socketErr);
+            return false;
+        }
+        std::tie(bytesXfer, socketErr) = requestSocket.write(request.data(), request.length());
+        if (socketErr != SocketError::Ok) {
+            testf("Failed to write to HTTP socket with: %d", socketErr);
+            return false;
+        }
+        uint32_t totalBytesRead = 0;
+        do {
+            std::tie(bytesXfer, socketErr) = requestSocket.read(responseBuffer + totalBytesRead, sizeof(responseBuffer) - totalBytesRead);
+            if (socketErr != SocketError::Ok) {
+                testf("Failed to read from HTTP socket with: %d", socketErr);
+                return false;
+            }
+            totalBytesRead += bytesXfer;
+        } while (bytesXfer != 0);
+        if (totalBytesRead != expectedResponse.length()) {
+            testf("Did not receive expected response. Got:\n%.*s", (size_t)bytesXfer, responseBuffer);
+            return false;
+        }
+        if (std::memcmp(expectedResponse.data(), responseBuffer, expectedResponse.length()) != 0) {
+            testf("Did not receive expected response. Got:\n%.*s", expectedResponse.length(), responseBuffer);
+            return false;
+        }
+    }
+
+    server.shutdown();
+
+    // Wait for server shutdown and check its error
+    std::unique_lock<std::mutex> lock(serverMutex);
+    serverCond.wait(lock, [&isShutdown] {return isShutdown; });
+
+    if (serverError != HttpError::Ok) {
+        testf("Failed to start HTTP server with: %d", serverError);
+        return false;
+    }
+
     return true;
 }

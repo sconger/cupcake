@@ -6,13 +6,19 @@
 
 using namespace Cupcake;
 
-ChunkedWriter::ChunkedWriter(StreamSource* streamSource) :
-    streamSource(streamSource),
+ChunkedWriter::ChunkedWriter() :
+    streamSource(nullptr),
     closed(false)
 {}
 
 ChunkedWriter::~ChunkedWriter() {
-    close();
+    if (streamSource) {
+        close();
+    }
+}
+
+void ChunkedWriter::init(StreamSource* initStreamSource) {
+    streamSource = initStreamSource;
 }
 
 std::tuple<uint32_t, HttpError> ChunkedWriter::write(const char* buffer, uint32_t bufferLen) {

@@ -10,8 +10,10 @@ namespace Cupcake {
 
 class ContentLengthWriter : public HttpOutputStream {
 public:
-    ContentLengthWriter(StreamSource* streamSource);
+    ContentLengthWriter();
     ~ContentLengthWriter();
+
+    void init(StreamSource* streamSource, uint64_t length);
 
     std::tuple<uint32_t, HttpError> write(const char* buffer, uint32_t bufferLen) override;
     HttpError flush() override;
@@ -22,6 +24,7 @@ private:
     ContentLengthWriter& operator=(const ContentLengthWriter&) = delete;
 
     StreamSource* streamSource;
+    uint64_t length;
 };
 
 }

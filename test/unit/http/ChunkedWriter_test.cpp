@@ -48,7 +48,8 @@ public:
 // Tests basic chunked writer functionality
 bool test_chunkedwriter_basic() {
     WriteTestSource streamSource;
-    ChunkedWriter writer(&streamSource);
+    ChunkedWriter writer;
+    writer.init(&streamSource);
 
     HttpError err;
     std::tie(std::ignore, err) = writer.write("0123456789", 10);
@@ -89,7 +90,8 @@ bool test_chunkedwriter_basic() {
 // Tests closing a stream with nothing written
 bool test_chunkedwriter_empty() {
     WriteTestSource streamSource;
-    ChunkedWriter writer(&streamSource);
+    ChunkedWriter writer;
+    writer.init(&streamSource);
 
     HttpError err = writer.close();
     if (err != HttpError::Ok) {

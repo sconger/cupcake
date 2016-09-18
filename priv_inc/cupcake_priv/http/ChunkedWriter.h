@@ -10,8 +10,10 @@ namespace Cupcake {
 
 class ChunkedWriter : public HttpOutputStream {
 public:
-    ChunkedWriter(StreamSource* streamSource);
+    ChunkedWriter();
     ~ChunkedWriter();
+
+    void init(StreamSource* streamSource);
 
     std::tuple<uint32_t, HttpError> write(const char* buffer, uint32_t bufferLen) override;
     HttpError flush() override;
