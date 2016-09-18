@@ -1,9 +1,12 @@
 
 #include "cupcake_priv/http/HttpConnection.h"
 
+#include "cupcake_priv/http/ChunkedReader.h"
+#include "cupcake_priv/http/CommaListIterator.h"
 #include "cupcake_priv/http/ContentLengthReader.h"
 #include "cupcake_priv/http/HttpRequestImpl.h"
 #include "cupcake_priv/http/HttpResponseImpl.h"
+#include "cupcake_priv/http/NullReader.h"
 #include "cupcake_priv/text/Strconv.h"
 
 #include <unordered_map>
@@ -32,7 +35,10 @@ HttpConnection::HttpConnection(StreamSource* streamSource, const HandlerMap* han
     streamSource(streamSource),
     handlerMap(handlerMap),
     state(HttpState::Headers),
-    contentLength(0)
+    keepAlive(false),
+    hasContentLength(false),
+    contentLength(0),
+    isChunked(false)
 {
     bufReader.init(streamSource, 2048); // TODO: Define read constant somewhere
 }
@@ -80,6 +86,9 @@ HttpError HttpConnection::innerRun() {
         return HttpError::ClientError;
     }
 
+    // Deal with contradictory headers
+    headerFixup();
+
     HttpHandler handler;
     bool foundHandler;
     std::tie(handler, foundHandler) = handlerMap->getHandler(curUrl);
@@ -100,13 +109,24 @@ HttpError HttpConnection::innerRun() {
         headerValuesStringRef.push_back(curHeaderValues.at(i));
     }
 
+    ChunkedReader chunkedReader(bufReader);
     ContentLengthReader contentLengthReader(bufReader, contentLength);
+    NullReader nullReader;
+
+    HttpInputStream* inputStream;
+    if (isChunked) {
+        inputStream = &chunkedReader;
+    } else if (hasContentLength) {
+        inputStream = &contentLengthReader;
+    } else {
+        inputStream = &nullReader;
+    }
 
     HttpRequestImpl requestImpl(curMethod,
         curUrl,
         headerNamesStringRef,
         headerValuesStringRef,
-        contentLengthReader);
+        *inputStream);
 
     HttpResponseImpl responseImpl(curVersion,
         streamSource);
@@ -161,8 +181,10 @@ bool HttpConnection::parseRequestLine(const StringRef line) {
 
     if (version.equals("HTTP/1.0")) {
         curVersion = HttpVersion::Http1_0;
+        keepAlive = false;
     } else if (version.equals("HTTP/1.1")) {
         curVersion = HttpVersion::Http1_1;
+        keepAlive = true;
     } else {
         if (version.startsWith("HTTP/")) {
             sendStatus(505, "HTTP Version Not Supported");
@@ -250,10 +272,42 @@ bool HttpConnection::parseSpecialHeaders() {
             }
             hasContentLength = true;
         } else if (headerName.engEqualsIgnoreCase("Transfer-Encoding")) {
-            // TODO: Chunked if value after last comma is "chunked"
+            // Chunked if value after last comma is "chunked"
+            StringRef transferEncoding = curHeaderValues[i];
+            StringRef last = CommaListIterator(transferEncoding).getLast();
+            isChunked = last.engEqualsIgnoreCase("chunked");
+        } else if (headerName.engEqualsIgnoreCase("Connection")) {
+            // The Connection header is a comma separater list
+            CommaListIterator connectionIter(curHeaderValues[i]);
+            bool closeFound = false;
+            bool keepAliveFound = false;
+            StringRef connectionNext = connectionIter.next();
+            while (connectionNext.length() != 0) {
+                if (connectionNext.engEqualsIgnoreCase("close")) {
+                    closeFound = true;
+                    keepAlive = false;
+                } else if (connectionNext.engCompareIgnoreCase("keep-alive")) {
+                    keepAliveFound = true;
+                    keepAlive = true;
+                }
+            }
+
+            if (closeFound && keepAliveFound) {
+                sendStatus(400, "Invalid Connection header");
+                return false;
+            }
         }
     }
     return true;
+}
+
+void HttpConnection::headerFixup() {
+    // If we get both a content length and a chunked, we should ignore the content length
+    // https://www.w3.org/Protocols/rfc2616/rfc2616-sec4.html#sec4.4
+    if (hasContentLength && isChunked) {
+        hasContentLength = false;
+        contentLength = 0;
+    }
 }
 
 HttpError HttpConnection::sendStatus(uint32_t code, const StringRef reasonPhrase) {
@@ -270,4 +324,26 @@ HttpError HttpConnection::sendStatus(uint32_t code, const StringRef reasonPhrase
     HttpError err;
     std::tie(std::ignore, err) = streamSource->writev(ioBufs, 2);
     return err;
+}
+
+/* Helper to trim HTTP header whitespace. RFC 7230 defines that as spaces or horizontal tabs. */
+StringRef HttpConnection::trimWhitespace(const StringRef strRef) const {
+    size_t len = strRef.length();
+    size_t startIndex = 0;
+
+    while (startIndex < len &&
+           (strRef.charAt(startIndex) == ' ' ||
+            strRef.charAt(startIndex) == '\t')) {
+        startIndex++;
+    }
+
+    size_t endIndex = strRef.length() - 1;
+
+    while (endIndex != startIndex &&
+           (strRef.charAt(endIndex) == ' ' ||
+            strRef.charAt(endIndex) == '\t')) {
+        endIndex--;
+    }
+
+    return strRef.substring(startIndex, endIndex);
 }

@@ -390,10 +390,6 @@ void String::reserve(size_t size) {
     _long._data = newBuffer;
 }
 
-void String::trim() {
-    // TODO
-}
-
 bool String::isLong() const {
     if (isBigEndian()) {
         return (_short._size & 0x80) != 0;

@@ -60,8 +60,6 @@ public:
     void trimToSize(size_t size);
     void reserve(size_t size);
 
-    void trim();
-
     String& operator+=(const String& str);
     String& operator+=(const StringRef strRef);
     String& operator+=(const char* cstr);

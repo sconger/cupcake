@@ -9,6 +9,7 @@
 #include "unit/http/BufferedWriter_test.h"
 #include "unit/http/ChunkedReader_test.h"
 #include "unit/http/ChunkedWriter_test.h"
+#include "unit/http/CommaListIterator_test.h"
 #include "unit/http/Http1_test.h"
 #include "unit/text/String_test.h"
 #include "unit/text/Strconv_test.h"
@@ -106,6 +107,9 @@ int main(int argc, const char** argv) {
     RUN_TEST(test_chunkedreader_trailing_headers);
     RUN_TEST(test_chunkedwriter_basic);
     RUN_TEST(test_chunkedwriter_empty);
+
+    RUN_TEST(test_commalistiterator_next);
+    RUN_TEST(test_commalistiterator_getLast);
 
     RUN_TEST(test_http1_empty);
     RUN_TEST(test_http1_contentlen_request);
