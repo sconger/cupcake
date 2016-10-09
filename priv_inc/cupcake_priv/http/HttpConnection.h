@@ -47,8 +47,8 @@ private:
     HttpMethod curMethod;
     HttpVersion curVersion;
     String curUrl;
-    std::vector<String> curHeaderNames;
-    std::vector<String> curHeaderValues;
+    std::vector<String> headerNames;
+    std::vector<String> headerValues;
     bool keepAlive;
     bool hasContentLength;
     uint64_t contentLength;

@@ -16,8 +16,8 @@ class HttpRequestImpl : public HttpRequest {
 public:
     HttpRequestImpl(HttpMethod method,
         StringRef url,
-        std::vector<StringRef>& headerNames,
-        std::vector<StringRef>& headerValues,
+        const std::vector<String>& headerNames,
+        const std::vector<String>& headerValues,
         HttpInputStream& inputStream);
 
     const HttpMethod getMethod() const override;
@@ -32,8 +32,8 @@ public:
 private:
     HttpMethod method;
     StringRef url;
-    std::vector<StringRef>& headerNames;
-    std::vector<StringRef>& headerValues;
+    const std::vector<String>& headerNames;
+    const std::vector<String>& headerValues;
 
     HttpInputStream& inputStream;
 };

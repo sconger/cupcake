@@ -57,8 +57,8 @@ HttpError HttpConnection::innerRun() {
     StringRef line;
 
     do {
-        curHeaderNames.clear();
-        curHeaderValues.clear();
+        headerNames.clear();
+        headerValues.clear();
 
         // Read the request line
         std::tie(line, err) = bufReader.readLine(64 * 1024); // TODO: Define limit somewhere
@@ -101,18 +101,6 @@ HttpError HttpConnection::innerRun() {
             return sendStatus(404, "Not Found");
         }
 
-        // Hack at the moment to get StringRef header values. Implement pool allocater later.
-        size_t headerCount = curHeaderNames.size();
-        std::vector<StringRef> headerNamesStringRef;
-        std::vector<StringRef> headerValuesStringRef;
-        headerNamesStringRef.reserve(headerCount);
-        headerValuesStringRef.reserve(headerCount);
-
-        for (size_t i = 0; i < headerCount; i++) {
-            headerNamesStringRef.push_back(curHeaderNames.at(i));
-            headerValuesStringRef.push_back(curHeaderValues.at(i));
-        }
-
         ChunkedReader chunkedReader(bufReader);
         ContentLengthReader contentLengthReader(bufReader, contentLength);
         NullReader nullReader;
@@ -128,8 +116,8 @@ HttpError HttpConnection::innerRun() {
 
         HttpRequestImpl requestImpl(curMethod,
             curUrl,
-            headerNamesStringRef,
-            headerValuesStringRef,
+            headerNames,
+            headerValues,
             *inputStream);
 
         HttpResponseImpl responseImpl(curVersion,
@@ -221,7 +209,7 @@ bool HttpConnection::parseHeaderLine(const StringRef line) {
 
     // If padded, treat as extension of previous line
     if (padLength != 0) {
-        curHeaderValues.back().append(line.substring(padLength));
+        headerValues.back().append(line.substring(padLength));
         return true;
     }
 
@@ -250,28 +238,28 @@ bool HttpConnection::parseHeaderLine(const StringRef line) {
     // In that case, we want to append it as a comma separated value to
     // the previous header.
     // https://www.w3.org/Protocols/rfc2616/rfc2616-sec4.html#sec4.2
-    for (size_t i = 0; i < curHeaderNames.size(); i++) {
-        const String& existingHeaderName = curHeaderNames[i];
+    for (size_t i = 0; i < headerNames.size(); i++) {
+        const String& existingHeaderName = headerNames[i];
         if (headerName.engEqualsIgnoreCase(existingHeaderName)) {
-            String& existingValue = curHeaderValues[i];
+            String& existingValue = headerValues[i];
             existingValue.appendChar(',');
             existingValue.append(headerValue);
             return true;
         }
     }
 
-    curHeaderNames.emplace_back(headerName);
-    curHeaderValues.emplace_back(headerValue);
+    headerNames.push_back(headerName);
+    headerValues.push_back(headerValue);
     return true;
 }
 
 // TODO: Store index of these headers so we don't need to find them?
 bool HttpConnection::parseSpecialHeaders() {
-    for (size_t i = 0; i < curHeaderNames.size(); i++) {
-        const String& headerName = curHeaderNames[i];
+    for (size_t i = 0; i < headerNames.size(); i++) {
+        const String& headerName = headerNames[i];
         if (headerName.engEqualsIgnoreCase("Content-Length")) {
             bool validNumber;
-            std::tie(contentLength, validNumber) = Strconv::parseUint64(curHeaderValues[i]);
+            std::tie(contentLength, validNumber) = Strconv::parseUint64(headerValues[i]);
 
             if (!validNumber) {
                 sendStatus(400, "Invalid Content-Length header");
@@ -280,12 +268,12 @@ bool HttpConnection::parseSpecialHeaders() {
             hasContentLength = true;
         } else if (headerName.engEqualsIgnoreCase("Transfer-Encoding")) {
             // Chunked if value after last comma is "chunked"
-            StringRef transferEncoding = curHeaderValues[i];
+            StringRef transferEncoding = headerValues[i];
             StringRef last = CommaListIterator(transferEncoding).getLast();
             isChunked = last.engEqualsIgnoreCase("chunked");
         } else if (headerName.engEqualsIgnoreCase("Connection")) {
             // The Connection header is a comma separater list
-            CommaListIterator connectionIter(curHeaderValues[i]);
+            CommaListIterator connectionIter(headerValues[i]);
             bool closeFound = false;
             bool keepAliveFound = false;
             StringRef connectionNext = connectionIter.next();
