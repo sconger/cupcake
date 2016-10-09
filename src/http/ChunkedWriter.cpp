@@ -21,9 +21,9 @@ void ChunkedWriter::init(StreamSource* initStreamSource) {
     streamSource = initStreamSource;
 }
 
-std::tuple<uint32_t, HttpError> ChunkedWriter::write(const char* buffer, uint32_t bufferLen) {
+HttpError ChunkedWriter::write(const char* buffer, uint32_t bufferLen) {
     if (bufferLen == 0) {
-        return std::make_tuple(0, HttpError::Ok);
+        return HttpError::Ok;
     }
 
     // TODO: Should probably buffer the small writes
@@ -40,14 +40,7 @@ std::tuple<uint32_t, HttpError> ChunkedWriter::write(const char* buffer, uint32_
     writeBufs[3].buffer = "\r\n";
     writeBufs[3].bufferLen = 2;
 
-    // TODO: Should skip returning a length
-    HttpError err;
-    std::tie(std::ignore, err) = streamSource->writev(writeBufs, 4);
-    if (err == HttpError::Ok) {
-        return std::make_tuple(bufferLen, HttpError::Ok);
-    } else {
-        return std::make_tuple(0, err);
-    }
+    return streamSource->writev(writeBufs, 4);
 }
 
 HttpError ChunkedWriter::flush() {
@@ -60,8 +53,5 @@ HttpError ChunkedWriter::close() {
     }
     closed = true;
 
-    uint32_t bytesWritten;
-    HttpError err;
-    std::tie(bytesWritten, err) = streamSource->write("0\r\n\r\n", 5);
-    return err;
+    return streamSource->write("0\r\n\r\n", 5);
 }

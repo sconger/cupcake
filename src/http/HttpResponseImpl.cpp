@@ -47,9 +47,7 @@ HttpError HttpResponseImpl::setStatus(uint32_t code, StringRef statusText) {
     ioBufs[3].buffer = "\r\n";
     ioBufs[3].bufferLen = 2;
 
-    HttpError err;
-    std::tie(std::ignore, err) = streamSource->writev(ioBufs, 4);
-    return err;
+    return streamSource->writev(ioBufs, 4);
 }
 
 HttpError HttpResponseImpl::addHeader(StringRef headerName, StringRef headerValue) {
@@ -86,9 +84,7 @@ HttpError HttpResponseImpl::addHeader(StringRef headerName, StringRef headerValu
     ioBufs[3].buffer = "\r\n";
     ioBufs[3].bufferLen = 2;
 
-    HttpError err;
-    std::tie(std::ignore, err) = streamSource->writev(ioBufs, 4);
-    return err;
+    return streamSource->writev(ioBufs, 4);
 }
 
 std::tuple<HttpOutputStream*, HttpError> HttpResponseImpl::getOutputStream() {
@@ -107,14 +103,10 @@ std::tuple<HttpOutputStream*, HttpError> HttpResponseImpl::getOutputStream() {
         httpOutputStream = &chunkedWriter;
     }
 
-    std::tie(std::ignore, err) = streamSource->write("\r\n", 2);
+    err = streamSource->write("\r\n", 2);
     return std::make_tuple(httpOutputStream, err);
 }
 
 HttpError HttpResponseImpl::addBlankLineIfNeeded() {
-    HttpError err = HttpError::Ok;
-    if (!bodyWritten) {
-        std::tie(std::ignore, err) = streamSource->write("\r\n", 2);
-    }
-    return err;
+    return streamSource->write("\r\n", 2);
 }

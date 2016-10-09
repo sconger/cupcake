@@ -21,7 +21,7 @@ public:
 
     void init(StreamSource* streamSource, uint32_t bufferSize);
 
-    std::tuple<uint32_t, HttpError> write(const char* buffer, uint32_t bufferLen);
+    HttpError write(const char* buffer, uint32_t bufferLen);
     HttpError flush();
 
 private:

@@ -58,8 +58,8 @@ public:
 
     std::tuple<uint32_t, SocketError> read(char* buffer, uint32_t bufferLen);
     std::tuple<uint32_t, SocketError> readv(INet::IoBuffer* buffers, uint32_t bufferCount);
-    std::tuple<uint32_t, SocketError> write(const char* buffer, uint32_t bufferLen);
-    std::tuple<uint32_t, SocketError> writev(const INet::IoBuffer* buffers, uint32_t bufferCount);
+    SocketError write(const char* buffer, uint32_t bufferLen);
+    SocketError writev(const INet::IoBuffer* buffers, uint32_t bufferCount);
 
     SocketError shutdownRead();
     SocketError shutdownWrite();
@@ -80,7 +80,7 @@ private:
     std::future<void> accept_co(SOCKET preparedSocket, PTP_IO preparedPtpIo, std::tuple<Socket, SocketError>* res);
     std::future<void> connect_co(const SockAddr& sockAddr, SocketError* res);
     std::future<void> read_co(INet::IoBuffer* buffers, uint32_t bufferCount, std::tuple<uint32_t, SocketError>* res);
-    std::future<void> write_co(const INet::IoBuffer* buffers, uint32_t bufferCount, std::tuple<uint32_t, SocketError>* res);
+    std::future<void> write_co(const INet::IoBuffer* buffers, uint32_t bufferCount, SocketError* res);
 
     SOCKET socket;
     PTP_IO ptpIo;

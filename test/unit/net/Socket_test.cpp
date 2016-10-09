@@ -56,14 +56,9 @@ bool test_socket_basic() {
         return false;
     }
 
-    uint32_t bytesWritten;
-    std::tie(bytesWritten, err) = connectingSocket.write("Howdy", 5);
+    err = connectingSocket.write("Howdy", 5);
     if (err != SocketError::Ok) {
         testf("Failed to write to socket with: %d", err);
-        return false;
-    }
-    if (bytesWritten != 5) {
-        testf("Did not write expected number of bytes");
         return false;
     }
 
@@ -140,14 +135,9 @@ bool test_socket_vector() {
     writeBuffers[2].buffer = writeData3;
     writeBuffers[2].bufferLen = 2;
 
-    uint32_t bytesWritten;
-    std::tie(bytesWritten, err) = connectingSocket.writev(writeBuffers, 3);
+    err = connectingSocket.writev(writeBuffers, 3);
     if (err != SocketError::Ok) {
         testf("Failed to write to socket with: %d", err);
-        return false;
-    }
-    if (bytesWritten != 10) {
-        testf("Did not write expected number of bytes");
         return false;
     }
 

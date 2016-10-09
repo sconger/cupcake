@@ -21,8 +21,8 @@ public:
     virtual std::tuple<StreamSource*, HttpError> accept() = 0;
     virtual std::tuple<uint32_t, HttpError> read(char* buffer, uint32_t bufferLen) = 0;
     virtual std::tuple<uint32_t, HttpError> readv(INet::IoBuffer* buffers, uint32_t bufferCount) = 0;
-    virtual std::tuple<uint32_t, HttpError> write(const char* buffer, uint32_t bufferLen) = 0;
-    virtual std::tuple<uint32_t, HttpError> writev(const INet::IoBuffer* buffers, uint32_t bufferCount) = 0;
+    virtual HttpError write(const char* buffer, uint32_t bufferLen) = 0;
+    virtual HttpError writev(const INet::IoBuffer* buffers, uint32_t bufferCount) = 0;
     virtual HttpError close() = 0;
 };
 

@@ -25,18 +25,16 @@ public:
     std::tuple<uint32_t, HttpError> readv(INet::IoBuffer* buffers, uint32_t bufferCount) override {
         return std::make_tuple(0, HttpError::Ok);
     }
-    std::tuple<uint32_t, HttpError> write(const char* buffer, uint32_t bufferLen) override {
+    HttpError write(const char* buffer, uint32_t bufferLen) override {
         std::copy_n(buffer, bufferLen, std::back_inserter(dataWritten));
-        return std::make_tuple(bufferLen, HttpError::Ok);
+        return HttpError::Ok;
     }
-    std::tuple<uint32_t, HttpError> writev(const INet::IoBuffer* buffers, uint32_t bufferCount) override {
-        uint32_t totalBytes = 0;
+    HttpError writev(const INet::IoBuffer* buffers, uint32_t bufferCount) override {
         for (uint32_t i = 0; i < bufferCount; i++) {
             const INet::IoBuffer& bufferIter = buffers[i];
             std::copy_n(bufferIter.buffer, bufferIter.bufferLen, std::back_inserter(dataWritten));
-            totalBytes += bufferIter.bufferLen;
         }
-        return std::make_tuple(totalBytes, HttpError::Ok);
+        return HttpError::Ok;
     }
     HttpError close() override {
         return HttpError::Ok;
@@ -51,14 +49,13 @@ bool test_chunkedwriter_basic() {
     ChunkedWriter writer;
     writer.init(&streamSource);
 
-    HttpError err;
-    std::tie(std::ignore, err) = writer.write("0123456789", 10);
+    HttpError err = writer.write("0123456789", 10);
     if (err != HttpError::Ok) {
         testf("Write failed");
         return false;
     }
 
-    std::tie(std::ignore, err) = writer.write("abcd", 4);
+    err = writer.write("abcd", 4);
     if (err != HttpError::Ok) {
         testf("Write failed");
         return false;

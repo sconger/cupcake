@@ -19,17 +19,16 @@ ContentLengthWriter::~ContentLengthWriter() {
     }
 }
 
-std::tuple<uint32_t, HttpError> ContentLengthWriter::write(const char* buffer, uint32_t bufferLen) {
+HttpError ContentLengthWriter::write(const char* buffer, uint32_t bufferLen) {
     if (bufferLen > length) {
-        return std::make_tuple(0, HttpError::ContentLengthExceeded);
+        return HttpError::ContentLengthExceeded;
     }
-    uint32_t bytesWritten;
-    HttpError err;
-    std::tie(bytesWritten, err) = streamSource->write(buffer, bufferLen);
+
+    HttpError err = streamSource->write(buffer, bufferLen);
     if (err == HttpError::Ok) {
         length -= bufferLen;
     }
-    return std::make_tuple(bytesWritten, err);
+    return err;
 }
 
 HttpError ContentLengthWriter::flush() {

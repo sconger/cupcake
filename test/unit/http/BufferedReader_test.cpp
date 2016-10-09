@@ -51,11 +51,11 @@ public:
         }
         return std::make_tuple(bytesCopied, HttpError::Ok);
     }
-    std::tuple<uint32_t, HttpError> write(const char* buffer, uint32_t bufferLen) override {
-        return std::make_tuple(0, HttpError::Ok);
+    HttpError write(const char* buffer, uint32_t bufferLen) override {
+        return HttpError::Ok;
     }
-    std::tuple<uint32_t, HttpError> writev(const INet::IoBuffer* buffers, uint32_t bufferCount) override {
-        return std::make_tuple(0, HttpError::Ok);
+    HttpError writev(const INet::IoBuffer* buffers, uint32_t bufferCount) override {
+        return HttpError::Ok;
     }
     HttpError close() override {
         return HttpError::Ok;

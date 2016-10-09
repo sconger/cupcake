@@ -82,7 +82,7 @@ bool test_http1_empty() {
         testf("Failed to connect to HTTP socket with: %d", socketErr);
         return false;
     }
-    std::tie(bytesXfer, socketErr) = requestSocket.write(request.data(), request.length());
+    socketErr = requestSocket.write(request.data(), request.length());
     if (socketErr != SocketError::Ok) {
         testf("Failed to write to HTTP socket with: %d", socketErr);
         return false;
@@ -208,7 +208,7 @@ bool test_http1_contentlen_request() {
         testf("Failed to connect to HTTP socket with: %d", socketErr);
         return false;
     }
-    std::tie(bytesXfer, socketErr) = requestSocket.write(request.data(), request.length());
+    socketErr = requestSocket.write(request.data(), request.length());
     if (socketErr != SocketError::Ok) {
         testf("Failed to write to HTTP socket with: %d", socketErr);
         return false;
@@ -356,7 +356,7 @@ bool test_http1_chunked_request() {
         testf("Failed to connect to HTTP socket with: %d", socketErr);
         return false;
     }
-    std::tie(bytesXfer, socketErr) = requestSocket.write(request.data(), request.length());
+    socketErr = requestSocket.write(request.data(), request.length());
     if (socketErr != SocketError::Ok) {
         testf("Failed to write to HTTP socket with: %d", socketErr);
         return false;
@@ -463,11 +463,12 @@ bool test_http1_keepalive() {
         "GET /index.html HTTP/1.0\r\n"
         "\r\n",
     };
+    // TODO: Shouldn't expect last newline
     std::vector<StringRef> expectedResponses = {
-        "HTTP/1.0 200 OK\r\nContent-Length: 11\r\n\r\nHello World"
-        "HTTP/1.0 200 OK\r\nContent-Length: 11\r\n\r\nHello World",
-        "HTTP/1.0 200 OK\r\nContent-Length: 11\r\n\r\nHello World",
-        "HTTP/1.0 200 OK\r\nContent-Length: 11\r\n\r\nHello World",
+        "HTTP/1.0 200 OK\r\nContent-Length: 11\r\n\r\nHello World\r\n"
+        "HTTP/1.0 200 OK\r\nContent-Length: 11\r\n\r\nHello World\r\n",
+        "HTTP/1.0 200 OK\r\nContent-Length: 11\r\n\r\nHello World\r\n",
+        "HTTP/1.0 200 OK\r\nContent-Length: 11\r\n\r\nHello World\r\n",
     };
 
     for (size_t i = 0; i < requests.size(); i++) {
@@ -487,7 +488,7 @@ bool test_http1_keepalive() {
             testf("Failed to connect to HTTP socket with: %d", socketErr);
             return false;
         }
-        std::tie(bytesXfer, socketErr) = requestSocket.write(request.data(), request.length());
+        socketErr = requestSocket.write(request.data(), request.length());
         if (socketErr != SocketError::Ok) {
             testf("Failed to write to HTTP socket with: %d", socketErr);
             return false;

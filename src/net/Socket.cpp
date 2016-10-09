@@ -77,11 +77,11 @@ std::tuple<uint32_t, SocketError> Socket::readv(INet::IoBuffer* buffers, uint32_
     return impl->readv(buffers, bufferCount);
 }
 
-std::tuple<uint32_t, SocketError> Socket::write(const char* buffer, uint32_t bufferLen) {
+SocketError Socket::write(const char* buffer, uint32_t bufferLen) {
     return impl->write(buffer, bufferLen);
 }
 
-std::tuple<uint32_t, SocketError> Socket::writev(const INet::IoBuffer* buffers, uint32_t bufferCount) {
+SocketError Socket::writev(const INet::IoBuffer* buffers, uint32_t bufferCount) {
     return impl->writev(buffers, bufferCount);
 }
 

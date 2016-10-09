@@ -137,6 +137,7 @@ HttpError HttpConnection::innerRun() {
 
         handler(requestImpl, responseImpl);
 
+        // TODO: This blank line should really be added at the top of the loop if not the first request
         err = responseImpl.addBlankLineIfNeeded();
         if (err != HttpError::Ok) {
             return err;
@@ -330,7 +331,5 @@ HttpError HttpConnection::sendStatus(uint32_t code, const StringRef reasonPhrase
     ioBufs[2].buffer = "\r\n\r\n";
     ioBufs[2].bufferLen = 4;
 
-    HttpError err;
-    std::tie(std::ignore, err) = streamSource->writev(ioBufs, 3);
-    return err;
+    return streamSource->writev(ioBufs, 3);
 }

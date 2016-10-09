@@ -18,8 +18,8 @@ public:
     std::tuple<StreamSource*, HttpError> accept() override;
     std::tuple<uint32_t, HttpError> read(char* buffer, uint32_t bufferLen) override;
     std::tuple<uint32_t, HttpError> readv(INet::IoBuffer* buffers, uint32_t bufferCount) override;
-    std::tuple<uint32_t, HttpError> write(const char* buffer, uint32_t bufferLen) override;
-    std::tuple<uint32_t, HttpError> writev(const INet::IoBuffer* buffers, uint32_t bufferCount) override;
+    HttpError write(const char* buffer, uint32_t bufferLen) override;
+    HttpError writev(const INet::IoBuffer* buffers, uint32_t bufferCount) override;
     HttpError close() override;
 
 private:

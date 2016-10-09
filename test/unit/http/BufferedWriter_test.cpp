@@ -25,18 +25,16 @@ public:
     std::tuple<uint32_t, HttpError> readv(INet::IoBuffer* buffers, uint32_t bufferCount) override {
         return std::make_tuple(0, HttpError::Ok);
     }
-    std::tuple<uint32_t, HttpError> write(const char* buffer, uint32_t bufferLen) override {
+    HttpError write(const char* buffer, uint32_t bufferLen) override {
         std::copy_n(buffer, bufferLen, std::back_inserter(dataWritten));
-        return std::make_tuple(bufferLen, HttpError::Ok);
+        return HttpError::Ok;
     }
-    std::tuple<uint32_t, HttpError> writev(const INet::IoBuffer* buffers, uint32_t bufferCount) override {
-        uint32_t totalBytes = 0;
+    HttpError writev(const INet::IoBuffer* buffers, uint32_t bufferCount) override {
         for (uint32_t i = 0; i < bufferCount; i++) {
             const INet::IoBuffer& bufferIter = buffers[i];
             std::copy_n(bufferIter.buffer, bufferIter.bufferLen, std::back_inserter(dataWritten));
-            totalBytes += bufferIter.bufferLen;
         }
-        return std::make_tuple(totalBytes, HttpError::Ok);
+        return HttpError::Ok;
     }
     HttpError close() override {
         return HttpError::Ok;
@@ -50,16 +48,10 @@ bool test_bufferedwriter_basic() {
     BufferedWriter writer;
     writer.init(&testSource, 10);
 
-    uint32_t bytesWritten;
-    HttpError err;
-    std::tie(bytesWritten, err) = writer.write("1234567890", 10);
+    HttpError err = writer.write("1234567890", 10);
 
     if (err != HttpError::Ok) {
         testf("Write inicated failure");
-        return false;
-    }
-    if (bytesWritten != 10) {
-        testf("Wrote %u bytes instead of expected %u", bytesWritten, 10);
         return false;
     }
     if (testSource.dataWritten.size() != 0) {
@@ -67,13 +59,9 @@ bool test_bufferedwriter_basic() {
         return false;
     }
 
-    std::tie(bytesWritten, err) = writer.write("a", 1);
+    err = writer.write("a", 1);
     if (err != HttpError::Ok) {
         testf("Write inicated failure");
-        return false;
-    }
-    if (bytesWritten != 1) {
-        testf("Wrote %u bytes instead of expected %u", bytesWritten, 1);
         return false;
     }
     if (testSource.dataWritten.size() != 11) {
@@ -93,16 +81,10 @@ bool test_bufferedwriter_flush() {
     BufferedWriter writer;
     writer.init(&testSource, 10);
 
-    uint32_t bytesWritten;
-    HttpError err;
-    std::tie(bytesWritten, err) = writer.write("12345", 5);
+    HttpError err = writer.write("12345", 5);
 
     if (err != HttpError::Ok) {
         testf("Write inicated failure");
-        return false;
-    }
-    if (bytesWritten != 5) {
-        testf("Wrote %u bytes instead of expected %u", bytesWritten, 5);
         return false;
     }
     if (testSource.dataWritten.size() != 0) {
@@ -124,14 +106,10 @@ bool test_bufferedwriter_flush() {
         return false;
     }
 
-    std::tie(bytesWritten, err) = writer.write("1234567890", 10);
+    err = writer.write("1234567890", 10);
 
     if (err != HttpError::Ok) {
         testf("Write inicated failure");
-        return false;
-    }
-    if (bytesWritten != 10) {
-        testf("Wrote %u bytes instead of expected %u", bytesWritten, 10);
         return false;
     }
     if (testSource.dataWritten.size() != 5) {

@@ -618,15 +618,15 @@ public:
         return true;
     }
 
-    std::tuple<uint32_t, SocketError> await_resume() {
+    SocketError await_resume() {
         if (socketError != SocketError::Ok) {
-            return std::make_tuple(0, socketError);
+            return socketError;
         } else if (bytesXfer) {
-            return std::make_tuple(bytesXfer, SocketError::Ok);
+            return SocketError::Ok;
         } else if (completionResult.error != ERROR_SUCCESS) {
-            return std::make_tuple(0, getSocketError((int)completionResult.error));
+            return getSocketError((int)completionResult.error);
         } else {
-            return std::make_tuple((uint32_t)completionResult.bytesTransfered, SocketError::Ok);
+            return SocketError::Ok;
         }
     }
 
@@ -826,23 +826,23 @@ std::tuple<uint32_t, SocketError> SocketImpl::readv(INet::IoBuffer* buffers, uin
     return res;
 }
 
-std::future<void> SocketImpl::write_co(const INet::IoBuffer* buffers, uint32_t bufferCount, std::tuple<uint32_t, SocketError>* res) {
+std::future<void> SocketImpl::write_co(const INet::IoBuffer* buffers, uint32_t bufferCount, SocketError* res) {
     (*res) = co_await WriteAwaiter(this, buffers, bufferCount);
 }
 
-std::tuple<uint32_t, SocketError> SocketImpl::write(const char* buffer, uint32_t bufferLen) {
+SocketError SocketImpl::write(const char* buffer, uint32_t bufferLen) {
     INet::IoBuffer ioBuffer;
     ioBuffer.buffer = (char*)buffer;
     ioBuffer.bufferLen = bufferLen;
     return writev(&ioBuffer, 1);
 }
 
-std::tuple<uint32_t, SocketError> SocketImpl::writev(const INet::IoBuffer* buffers, uint32_t bufferCount) {
+SocketError SocketImpl::writev(const INet::IoBuffer* buffers, uint32_t bufferCount) {
     if (socket == INVALID_SOCKET) {
-        return std::make_tuple(0, SocketError::NotInitialized);
+        return SocketError::NotInitialized;
     }
 
-    std::tuple<uint32_t, SocketError> res(0, SocketError::Ok);
+    SocketError res = SocketError::Ok;
     write_co(buffers, bufferCount, &res).get();
     return res;
 }

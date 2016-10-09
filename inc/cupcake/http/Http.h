@@ -39,7 +39,7 @@ public:
 
 class HttpOutputStream {
 public:
-    virtual std::tuple<uint32_t, HttpError> write(const char* buffer, uint32_t bufferLen) = 0;
+    virtual HttpError write(const char* buffer, uint32_t bufferLen) = 0;
     virtual HttpError flush() = 0;
     virtual HttpError close() = 0;
 };

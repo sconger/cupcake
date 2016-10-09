@@ -15,12 +15,12 @@ void BufferedWriter::init(StreamSource* initStreamSource, uint32_t initBufferSiz
     buffer.reset(new char[initBufferSize]);
 }
 
-std::tuple<uint32_t, HttpError> BufferedWriter::write(const char* writeBuf, uint32_t inBufferLen) {
+HttpError BufferedWriter::write(const char* writeBuf, uint32_t inBufferLen) {
     // If it can fit in the buffer, copy it in
     if (index < bufferLen) {
         std::memcpy(buffer.get() + index, writeBuf, inBufferLen);
         index += inBufferLen;
-        return std::make_tuple(inBufferLen, HttpError::Ok);
+        return HttpError::Ok;
     }
 
     // If it can't fit, do a write of the existing data, and the new data
@@ -31,19 +31,15 @@ std::tuple<uint32_t, HttpError> BufferedWriter::write(const char* writeBuf, uint
     writeBufs[1].bufferLen = inBufferLen;
 
     uint32_t prevIndex = index;
-    uint32_t bytesWritten;
-    HttpError err;
-    std::tie(bytesWritten, err) = streamSource->writev(writeBufs, 2);
+    HttpError err = streamSource->writev(writeBufs, 2);
     if (err == HttpError::Ok) {
         index = 0;
     }
-    return std::make_tuple(bytesWritten - prevIndex, err);
+    return err;
 }
 
 HttpError BufferedWriter::flush() {
-    HttpError err;
-
-    std::tie(std::ignore, err) = streamSource->write(buffer.get(), index);
+    HttpError err = streamSource->write(buffer.get(), index);
     if (err == HttpError::Ok) {
         index = 0;
     }

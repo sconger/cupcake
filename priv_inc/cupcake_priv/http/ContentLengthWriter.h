@@ -15,7 +15,7 @@ public:
 
     void init(StreamSource* streamSource, uint64_t length);
 
-    std::tuple<uint32_t, HttpError> write(const char* buffer, uint32_t bufferLen) override;
+    HttpError write(const char* buffer, uint32_t bufferLen) override;
     HttpError flush() override;
     HttpError close() override;
 
