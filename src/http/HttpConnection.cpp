@@ -311,13 +311,20 @@ HttpError HttpConnection::sendStatus(uint32_t code, const StringRef reasonPhrase
     size_t codeBytes = Strconv::uint32ToStr(code, codeBuffer, sizeof(codeBuffer));
     codeBuffer[codeBytes] = ' ';
 
-    INet::IoBuffer ioBufs[3];
-    ioBufs[0].buffer = codeBuffer;
-    ioBufs[0].bufferLen = codeBytes + 1;
-    ioBufs[1].buffer = (char*)reasonPhrase.data();
-    ioBufs[1].bufferLen = (uint32_t)reasonPhrase.length();
-    ioBufs[2].buffer = "\r\n\r\n";
-    ioBufs[2].bufferLen = 4;
+    INet::IoBuffer ioBufs[4];
+
+    if (curVersion == HttpVersion::Http1_0) {
+        ioBufs[0].buffer = "HTTP/1.0 ";
+    } else {
+        ioBufs[0].buffer = "HTTP/1.1 ";
+    }
+    ioBufs[0].bufferLen = 9;
+    ioBufs[1].buffer = codeBuffer;
+    ioBufs[1].bufferLen = codeBytes + 1;
+    ioBufs[2].buffer = (char*)reasonPhrase.data();
+    ioBufs[2].bufferLen = (uint32_t)reasonPhrase.length();
+    ioBufs[3].buffer = "\r\n\r\n";
+    ioBufs[3].bufferLen = 4;
 
     return streamSource->writev(ioBufs, 3);
 }
