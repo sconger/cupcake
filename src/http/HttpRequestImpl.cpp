@@ -33,8 +33,7 @@ std::tuple<StringRef, StringRef> HttpRequestImpl::getHeader(uint32_t index) cons
 
 std::tuple<StringRef, bool> HttpRequestImpl::getHeader(const StringRef headerName) const {
     for (size_t i = 0; i < headerNames.size(); i++) {
-        const String& headerName = headerNames[i];
-        if (headerName.engEqualsIgnoreCase(headerName)) {
+        if (headerNames[i].engEqualsIgnoreCase(headerName)) {
             return std::make_tuple(headerValues[i], true);
         }
     }

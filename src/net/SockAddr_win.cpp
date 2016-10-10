@@ -71,7 +71,7 @@ bool SockAddr::isLoopback() const {
 String SockAddr::toString() const {
     wchar_t wbuffer[64]; // Arbitrary, but should be large enough
     char buffer[256];
-    DWORD len = sizeof(wbuffer);
+    DWORD len = sizeof(wbuffer) / sizeof(wchar_t);
 
     int toStrRes = ::WSAAddressToStringW((SOCKADDR*)&storage,
         sizeof(SOCKADDR_STORAGE),

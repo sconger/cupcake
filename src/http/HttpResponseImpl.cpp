@@ -69,6 +69,10 @@ HttpError HttpResponseImpl::addHeader(StringRef headerName, StringRef headerValu
         httpOutputStream = &contentLengthWriter;
         setContentLength = true;
     } else if (headerName.engEqualsIgnoreCase("Transfer-Encoding")) {
+        // Only supported in Http1.1
+        if (version == HttpVersion::Http1_0) {
+            return HttpError::InvalidHeader;
+        }
         // Considered chunked if the last value in the comma separated list is "chunked"
         CommaListIterator commaIter(headerValue);
         setTeChunked = commaIter.getLast().engEqualsIgnoreCase("chunked");
@@ -108,5 +112,8 @@ std::tuple<HttpOutputStream*, HttpError> HttpResponseImpl::getOutputStream() {
 }
 
 HttpError HttpResponseImpl::addBlankLineIfNeeded() {
-    return streamSource->write("\r\n", 2);
+    if (!bodyWritten) {
+        return streamSource->write("\r\n", 2);
+    }
+    return HttpError::Ok;
 }

@@ -505,7 +505,10 @@ public:
         DWORD flags = 0;
         DWORD bytesRecv = 0;
 
-        WSABUF* wsaBufs = (WSABUF*)alloca(bufferCount * sizeof(WSABUF));
+        WSABUF* wsaBufs = (WSABUF*)_malloca(bufferCount * sizeof(WSABUF));
+        if (!wsaBufs) {
+            throw std::bad_alloc();
+        }
         for (size_t i = 0; i < bufferCount; i++) {
             wsaBufs[i].buf = buffers[i].buffer;
             wsaBufs[i].len = buffers[i].bufferLen;
@@ -524,6 +527,7 @@ public:
         if (res == 0) {
             ::CancelThreadpoolIo(socketImpl->ptpIo);
             bytesXfer = bytesRecv;
+            _freea(wsaBufs);
             return false;
         } else {
             int wsaErr = ::WSAGetLastError();
@@ -531,10 +535,12 @@ public:
             if (wsaErr != WSA_IO_PENDING) {
                 ::CancelThreadpoolIo(socketImpl->ptpIo);
                 socketError = getSocketError(wsaErr);
+                _freea(wsaBufs);
                 return false;
             }
         }
 
+        _freea(wsaBufs);
         return true;
     }
 
@@ -585,7 +591,10 @@ public:
 
         DWORD bytesSent;
 
-        WSABUF* wsaBufs = (WSABUF*)alloca(bufferCount * sizeof(WSABUF));
+        WSABUF* wsaBufs = (WSABUF*)_malloca(bufferCount * sizeof(WSABUF));
+        if (!wsaBufs) {
+            throw std::bad_alloc();
+        }
         for (size_t i = 0; i < bufferCount; i++) {
             wsaBufs[i].buf = buffers[i].buffer;
             wsaBufs[i].len = buffers[i].bufferLen;
@@ -604,6 +613,7 @@ public:
         if (res == 0) {
             ::CancelThreadpoolIo(socketImpl->ptpIo);
             bytesXfer = bytesSent;
+            _freea(wsaBufs);
             return false;
         } else {
             int wsaErr = ::WSAGetLastError();
@@ -611,10 +621,12 @@ public:
             if (wsaErr != WSA_IO_PENDING) {
                 ::CancelThreadpoolIo(socketImpl->ptpIo);
                 socketError = getSocketError(wsaErr);
+                _freea(wsaBufs);
                 return false;
             }
         }
 
+        _freea(wsaBufs);
         return true;
     }
 

@@ -26,17 +26,28 @@ public:
     void run();
 
 private:
-    enum class HttpState;
-
     HttpConnection(const HttpConnection&) = delete;
     HttpConnection& operator=(const HttpConnection&) = delete;
 
+    enum class HttpState;
+
+    // Helper for passing back error state
+    class Status {
+    public:
+        uint32_t code;
+        const char* reasonPhrase;
+
+        Status() : code(0), reasonPhrase(nullptr) {}
+        Status(uint32_t status, const char* statusMessage) : code(status), reasonPhrase(statusMessage) {}
+        bool ok() {return code == 0;}
+    };
+
     HttpError innerRun();
 
-    bool parseRequestLine(const StringRef line);
-    bool parseHeaderLine(const StringRef line);
-    bool parseSpecialHeaders();
-    void headerFixup();
+    Status parseRequestLine(const StringRef line);
+    Status parseHeaderLine(const StringRef line);
+    Status parseSpecialHeaders();
+    Status checkAndFixupHeaders();
     HttpError sendStatus(uint32_t code, const StringRef reasonPhrase);
 
     const HandlerMap* handlerMap;
@@ -53,6 +64,7 @@ private:
     bool hasContentLength;
     uint64_t contentLength;
     bool isChunked;
+    bool hasHost;
 };
 
 }

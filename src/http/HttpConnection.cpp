@@ -38,7 +38,8 @@ HttpConnection::HttpConnection(StreamSource* streamSource, const HandlerMap* han
     keepAlive(false),
     hasContentLength(false),
     contentLength(0),
-    isChunked(false)
+    isChunked(false),
+    hasHost(false)
 {
     bufReader.init(streamSource, 2048); // TODO: Define read constant somewhere
 }
@@ -48,17 +49,25 @@ HttpConnection::~HttpConnection() {
 }
 
 void HttpConnection::run() {
-    HttpError err = innerRun();
     // TODO: log
+    HttpError err = innerRun();
+    err = streamSource->close();
 }
 
 HttpError HttpConnection::innerRun() {
     HttpError err;
     StringRef line;
+    Status status;
 
     do {
+        state = HttpState::Headers;
         headerNames.clear();
         headerValues.clear();
+        keepAlive = false;
+        hasContentLength = false;
+        contentLength = 0;
+        isChunked = false;
+        hasHost = false;
 
         // Read the request line
         std::tie(line, err) = bufReader.readLine(64 * 1024); // TODO: Define limit somewhere
@@ -66,8 +75,9 @@ HttpError HttpConnection::innerRun() {
             return err;
         }
 
-        if (!parseRequestLine(line)) {
-            return HttpError::ClientError;
+        status = parseRequestLine(line);
+        if (!status.ok()) {
+            break;
         }
 
         // Read the headers
@@ -78,20 +88,23 @@ HttpError HttpConnection::innerRun() {
             }
 
             // Switches to body state on empty line
-            if (!parseHeaderLine(line)) {
-                return HttpError::ClientError;
+            status = parseHeaderLine(line);
+            if (!status.ok()) {
+                break;
             }
         } while (state == HttpState::Headers);
 
         // Go through the headers so far and parse out special ones we need to pay attention to
-        bool headersOkay = parseSpecialHeaders();
-
-        if (!headersOkay) {
-            return HttpError::ClientError;
+        status = parseSpecialHeaders();
+        if (!status.ok()) {
+            break;
         }
 
         // Deal with contradictory headers
-        headerFixup();
+        status = checkAndFixupHeaders();
+        if (!status.ok()) {
+            break;
+        }
 
         HttpHandler handler;
         bool foundHandler;
@@ -125,7 +138,6 @@ HttpError HttpConnection::innerRun() {
 
         handler(requestImpl, responseImpl);
 
-        // TODO: This blank line should really be added at the top of the loop if not the first request
         err = responseImpl.addBlankLineIfNeeded();
         if (err != HttpError::Ok) {
             return err;
@@ -133,30 +145,36 @@ HttpError HttpConnection::innerRun() {
 
     } while (keepAlive);
 
-    return streamSource->close();
+    // If we exit the main loop because we need to emit a status, it should be a
+    // fatal one requiring closing the connection.
+    if (!status.ok()) {
+        err = sendStatus(status.code, status.reasonPhrase);
+        if (err != HttpError::Ok) {
+            return err;
+        }
+    }
+
+    return HttpError::Ok;
 }
 
-// TODO: Pass errors back
-bool HttpConnection::parseRequestLine(const StringRef line) {
+HttpConnection::Status HttpConnection::parseRequestLine(const StringRef line) {
     // Assuming exactly two spaces at the moment
     ptrdiff_t firstSpaceIndex = line.indexOf(' ');
     if (firstSpaceIndex == -1 || firstSpaceIndex == line.length() - 1) {
-        sendStatus(400, "Bad Request");
-        return false;
+        return Status(400, "Bad Request");
     }
 
     ptrdiff_t secondSpaceIndex = line.indexOf(' ', firstSpaceIndex + 1);
     if (secondSpaceIndex == -1) {
-        sendStatus(400, "Bad Request");
-        return false;
+        return Status(400, "Bad Request");
     }
 
     // Extract method
     StringRef methodStr = line.substring(0, firstSpaceIndex);
     auto methodLookup = methodLookupMap.find(methodStr);
     if (methodLookup == methodLookupMap.end()) {
-        sendStatus(405, "Method Not Allowed");
-        return false;
+        // https://www.w3.org/Protocols/rfc2616/rfc2616-sec5.html#sec5.1.1
+        return Status(501, "Not Implemented");
     }
 
     curMethod = methodLookup->second;
@@ -165,8 +183,7 @@ bool HttpConnection::parseRequestLine(const StringRef line) {
     StringRef url = line.substring(firstSpaceIndex + 1, secondSpaceIndex);
 
     if (url.length() == 0) {
-        sendStatus(400, "Bad Request");
-        return false;
+        return Status(400, "Bad Request");
     }
 
     curUrl = url;
@@ -182,22 +199,20 @@ bool HttpConnection::parseRequestLine(const StringRef line) {
         keepAlive = true;
     } else {
         if (version.startsWith("HTTP/")) {
-            sendStatus(505, "HTTP Version Not Supported");
+            return Status(505, "HTTP Version Not Supported");
         } else {
-            sendStatus(400, "Bad Request");
+            return Status(400, "Bad Request");
         }
-        return false;
     }
 
-    return true;
+    return Status();
 }
 
-// TODO: Pass errors back
-bool HttpConnection::parseHeaderLine(const StringRef line) {
+HttpConnection::Status HttpConnection::parseHeaderLine(const StringRef line) {
     // Check for end of headers
     if (line.length() == 0) {
         state = HttpState::Body;
-        return true;
+        return Status();
     }
 
     // Check pad length
@@ -210,14 +225,13 @@ bool HttpConnection::parseHeaderLine(const StringRef line) {
     // If padded, treat as extension of previous line
     if (padLength != 0) {
         headerValues.back().append(line.substring(padLength));
-        return true;
+        return Status();
     }
 
     // If not padded, try to split
     ptrdiff_t colonIndex = line.indexOf(':');
     if (colonIndex == -1) {
-        sendStatus(400, "Bad Request");
-        return false;
+        return Status(400, "Bad Request");
     }
 
     // The spec only specifies leading whitespace on the value, but also
@@ -244,17 +258,17 @@ bool HttpConnection::parseHeaderLine(const StringRef line) {
             String& existingValue = headerValues[i];
             existingValue.appendChar(',');
             existingValue.append(headerValue);
-            return true;
+            return Status();
         }
     }
 
     headerNames.push_back(headerName);
     headerValues.push_back(headerValue);
-    return true;
+    return Status();
 }
 
 // TODO: Store index of these headers so we don't need to find them?
-bool HttpConnection::parseSpecialHeaders() {
+HttpConnection::Status HttpConnection::parseSpecialHeaders() {
     for (size_t i = 0; i < headerNames.size(); i++) {
         const String& headerName = headerNames[i];
         if (headerName.engEqualsIgnoreCase("Content-Length")) {
@@ -262,8 +276,7 @@ bool HttpConnection::parseSpecialHeaders() {
             std::tie(contentLength, validNumber) = Strconv::parseUint64(headerValues[i]);
 
             if (!validNumber) {
-                sendStatus(400, "Invalid Content-Length header");
-                return false;
+                return Status(400, "Bad Request");
             }
             hasContentLength = true;
         } else if (headerName.engEqualsIgnoreCase("Transfer-Encoding")) {
@@ -271,6 +284,11 @@ bool HttpConnection::parseSpecialHeaders() {
             StringRef transferEncoding = headerValues[i];
             StringRef last = CommaListIterator(transferEncoding).getLast();
             isChunked = last.engEqualsIgnoreCase("chunked");
+
+            // Chunked is only supported for HTTP1.1
+            if (curVersion == HttpVersion::Http1_0 && isChunked) {
+                return Status(400, "Bad Request");
+            }
         } else if (headerName.engEqualsIgnoreCase("Connection")) {
             // The Connection header is a comma separater list
             CommaListIterator connectionIter(headerValues[i]);
@@ -289,21 +307,34 @@ bool HttpConnection::parseSpecialHeaders() {
             }
 
             if (closeFound && keepAliveFound) {
-                sendStatus(400, "Invalid Connection header");
-                return false;
+                return Status(400, "Bad Request");
             }
+        } else if (headerName.engEqualsIgnoreCase("Host")) {
+            if (hasHost) {
+                return Status(400, "Bad Request");
+            }
+            hasHost = true;
         }
     }
-    return true;
+    return Status();
 }
 
-void HttpConnection::headerFixup() {
+HttpConnection::Status HttpConnection::checkAndFixupHeaders() {
     // If we get both a content length and a chunked, we should ignore the content length
     // https://www.w3.org/Protocols/rfc2616/rfc2616-sec4.html#sec4.4
     if (hasContentLength && isChunked) {
         hasContentLength = false;
         contentLength = 0;
     }
+
+    // Http1.1 Requires clients to send a host field
+    // https://www.w3.org/Protocols/rfc2616/rfc2616-sec5.html#sec5.1.2
+    if (curVersion == HttpVersion::Http1_1 &&
+        !hasHost) {
+        return Status(400, "Bad Request");
+    }
+
+    return Status();
 }
 
 HttpError HttpConnection::sendStatus(uint32_t code, const StringRef reasonPhrase) {
