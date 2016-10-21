@@ -21,6 +21,7 @@ HttpResponseImpl::HttpResponseImpl(HttpVersion version, StreamSource* streamSour
     chunkedWriter(),
     bodyWritten(false),
     setContentLength(false),
+    contentLength(0),
     setTeChunked(false)
 {}
 
@@ -57,7 +58,6 @@ HttpError HttpResponseImpl::addHeader(StringRef headerName, StringRef headerValu
             return HttpError::InvalidHeader;
         }
 
-        uint64_t contentLength;
         bool validNumber;
         std::tie(contentLength, validNumber) = Strconv::parseUint64(headerValue);
 
@@ -66,7 +66,6 @@ HttpError HttpResponseImpl::addHeader(StringRef headerName, StringRef headerValu
         }
 
         contentLengthWriter.init(streamSource, contentLength);
-        httpOutputStream = &contentLengthWriter;
         setContentLength = true;
     } else if (headerName.engEqualsIgnoreCase("Transfer-Encoding")) {
         // Only supported in Http1.1
@@ -95,12 +94,21 @@ std::tuple<HttpOutputStream*, HttpError> HttpResponseImpl::getOutputStream() {
     HttpError err = HttpError::Ok;
     bodyWritten = true;
 
-    // If the user did not set chunked transfer encoding, add that header
-    if (httpOutputStream != &contentLengthWriter &&
-        !setTeChunked) {
+    if (setContentLength) {
+        contentLengthWriter.init(streamSource, contentLength);
+        httpOutputStream = &contentLengthWriter;
+    } else if (setTeChunked) {
+        chunkedWriter.init(streamSource);
+        httpOutputStream = &chunkedWriter;
+    } else {
+        // TODO: Flip to buffered Content-Length if HTTP1.0
+        if (version == HttpVersion::Http1_0) {
+            return std::make_tuple(nullptr, HttpError::InvalidHeader);
+        }
+
         err = addHeader("Transfer-Encoding", "Chunked");
         if (err != HttpError::Ok) {
-            return std::make_tuple(httpOutputStream, err);
+            return std::make_tuple(nullptr, err);
         }
 
         chunkedWriter.init(streamSource);

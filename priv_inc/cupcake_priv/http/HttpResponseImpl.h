@@ -36,6 +36,7 @@ private:
     ContentLengthWriter contentLengthWriter;
     ChunkedWriter chunkedWriter;
     bool setContentLength;
+    uint64_t contentLength;
     bool setTeChunked;
     mutable bool bodyWritten;
 };
