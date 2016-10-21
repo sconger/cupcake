@@ -12,6 +12,7 @@
 #include "unit/http/CommaListIterator_test.h"
 #include "unit/http/Http1_test.h"
 #include "unit/http/Http1_1_test.h"
+#include "unit/http2/Huffman_test.h"
 #include "unit/text/String_test.h"
 #include "unit/text/Strconv_test.h"
 #include "unit/net/AddrInfo_test.h"
@@ -121,6 +122,9 @@ int main(int argc, const char** argv) {
 
     RUN_TEST(test_http1_1_chunked_request);
     RUN_TEST(test_http1_1_keepalive);
+
+    // Http2 functionality
+    RUN_TEST(test_hpack_huffman_encode);
 
     if (testRes) {
         printf("FAILURE: Not all tests passed.\n");
