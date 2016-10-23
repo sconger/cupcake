@@ -125,6 +125,7 @@ int main(int argc, const char** argv) {
 
     // Http2 functionality
     RUN_TEST(test_hpack_huffman_encode);
+    RUN_TEST(test_hpack_huffman_decode);
 
     if (testRes) {
         printf("FAILURE: Not all tests passed.\n");

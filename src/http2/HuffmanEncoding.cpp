@@ -55,8 +55,33 @@ void encode(std::vector<char>* dest, const char* data, size_t dataLen) {
     }
 }
 
-void decode(std::vector<char>* dest, const char* data, size_t dataLen) {
+bool decode(std::vector<char>* dest, const char* data, size_t dataLen) {
+    size_t state = 0;
+    bool accept = true;
 
+    for (size_t i = 0; i < dataLen; i++) {
+        uint8_t c = data[i];
+        uint8_t x = c >> 4;
+
+        for (size_t i = 0; i < 2; i++) {
+            const HuffmanData::huffmanDecodeData* decodeData = &HuffmanData::huffmanDecodeTable[state][x];
+
+            if ((decodeData->flags & 0x4) != 0) {
+                return false;
+            }
+
+            if ((decodeData->flags & 0x2) != 0) {
+                dest->push_back(decodeData->symbol);
+            }
+
+            state = decodeData->state;
+            accept = (decodeData->flags & 0x1) != 0;
+
+            x = c & 0xf;
+        }
+    }
+
+    return accept;
 }
 
 } // End namespace HuffmanEncoding

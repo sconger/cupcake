@@ -11,7 +11,7 @@ namespace Cupcake {
  */
 namespace HuffmanEncoding {
     void encode(std::vector<char>* dest, const char* data, size_t dataLen);
-    void decode(std::vector<char>* dest, const char* data, size_t dataLen);
+    bool decode(std::vector<char>* dest, const char* data, size_t dataLen);
 }
 
 }
