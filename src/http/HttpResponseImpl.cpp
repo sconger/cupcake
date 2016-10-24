@@ -38,6 +38,10 @@ void HttpResponseImpl::addHeader(StringRef headerName, StringRef headerValue) {
 }
 
 std::tuple<HttpOutputStream*, HttpError> HttpResponseImpl::getOutputStream() {
+    if (httpOutputStream) {
+        return std::make_tuple(httpOutputStream, HttpError::Ok);
+    }
+
     if (respStatus != ResponseStatus::HEADERS) {
         return std::make_tuple(nullptr, HttpError::InvalidState);
     }
@@ -49,13 +53,18 @@ std::tuple<HttpOutputStream*, HttpError> HttpResponseImpl::getOutputStream() {
     }
 
     if (!setContentLength && !setTeChunked) {
-        // TODO: Flip to buffered Content-Length if HTTP1.0
+        // In the special case that it's HTTP1.0, and no content-length was specified,
+        // return a writer that buffers the content
         if (version == HttpVersion::Http1_0) {
-            return std::make_tuple(nullptr, HttpError::InvalidHeader);
+            bufferedContentLengthWriter.init(this);
+            httpOutputStream = &bufferedContentLengthWriter;
+            return std::make_tuple(httpOutputStream, HttpError::Ok);
         }
 
-        headerNames.push_back("Transfer_Encoding");
+        headerNames.push_back("Transfer-Encoding");
         headerValues.push_back("chunked");
+        chunkedWriter.init(streamSource);
+        httpOutputStream = &chunkedWriter;
     }
 
     err = writeHeaders();
@@ -80,6 +89,73 @@ HttpError HttpResponseImpl::close() {
     }
 
     return writeHeaders();
+}
+
+HttpError HttpResponseImpl::writeHeadersAndBody(const char* bufferedContent, size_t bufferedContentLen) {
+    
+    // If this is the special case of an HTTP1/0 response where we're buffering
+    // content of an unknown length, append a content length header, and make
+    // room in the iovec array for the data.
+    if (bufferedContentLen != 0) {
+        char contentLenBuffer[20];
+        size_t contentLengthStrLen = Strconv::int64ToStr((uint64_t)bufferedContentLen, contentLenBuffer, sizeof(contentLenBuffer));
+        headerNames.push_back("Content-Length");
+        headerValues.push_back(StringRef(contentLenBuffer, contentLengthStrLen));
+    }
+
+    size_t buffersNeeded = 5 + (4 * headerNames.size());
+    if (bufferedContentLen != 0) {
+        buffersNeeded++;
+    }
+
+    // TODO: malloca
+    std::auto_ptr<INet::IoBuffer> ioBufHolder(new INet::IoBuffer[buffersNeeded]);
+    INet::IoBuffer* ioBufs = ioBufHolder.get();
+
+    char codeBuffer[12];
+    size_t codeBytes = Strconv::uint32ToStr(statusCode, codeBuffer, sizeof(codeBuffer));
+    codeBuffer[codeBytes] = ' ';
+
+    if (version == HttpVersion::Http1_0) {
+        ioBufs[0].buffer = "HTTP/1.0 ";
+    } else {
+        ioBufs[0].buffer = "HTTP/1.1 ";
+    }
+    ioBufs[0].bufferLen = 9;
+    ioBufs[1].buffer = codeBuffer;
+    ioBufs[1].bufferLen = codeBytes + 1;
+    ioBufs[2].buffer = (char*)statusText.data();
+    ioBufs[2].bufferLen = (uint32_t)statusText.length();
+    ioBufs[3].buffer = "\r\n";
+    ioBufs[3].bufferLen = 2;
+
+    for (size_t i = 0; i < headerNames.size(); i++) {
+        const String& headerName = headerNames[i];
+        const String& headerValue = headerValues[i];
+
+        size_t offset = (4 * i) + 4;
+        ioBufs[offset].buffer = (char*)headerName.data();
+        ioBufs[offset].bufferLen = (uint32_t)headerName.length();
+        ioBufs[offset + 1].buffer = ": ";
+        ioBufs[offset + 1].bufferLen = 2;
+        ioBufs[offset + 2].buffer = (char*)headerValue.data();
+        ioBufs[offset + 2].bufferLen = (uint32_t)headerValue.length();
+        ioBufs[offset + 3].buffer = "\r\n";
+        ioBufs[offset + 3].bufferLen = 2;
+    }
+
+    if (bufferedContentLen != 0) {
+        // TODO: Ideally, we'd handle content length over 2 gigs... but *shrug*
+        ioBufs[buffersNeeded - 2].buffer = "\r\n";
+        ioBufs[buffersNeeded - 2].bufferLen = 2;
+        ioBufs[buffersNeeded - 1].buffer = (char*)bufferedContent;
+        ioBufs[buffersNeeded - 1].bufferLen = (uint32_t)bufferedContentLen;
+    } else {
+        ioBufs[buffersNeeded - 1].buffer = "\r\n";
+        ioBufs[buffersNeeded - 1].bufferLen = 2;
+    }
+
+    return streamSource->writev(ioBufs, buffersNeeded);
 }
 
 HttpError HttpResponseImpl::parseHeaders() {
@@ -130,45 +206,5 @@ HttpError HttpResponseImpl::parseHeaders() {
 }
 
 HttpError HttpResponseImpl::writeHeaders() {
-    size_t buffersNeeded = 5 + (4 * headerNames.size());
-    // TODO: malloca
-    std::auto_ptr<INet::IoBuffer> ioBufHolder(new INet::IoBuffer[buffersNeeded]);
-    INet::IoBuffer* ioBufs = ioBufHolder.get();
-
-    char codeBuffer[12];
-    size_t codeBytes = Strconv::uint32ToStr(statusCode, codeBuffer, sizeof(codeBuffer));
-    codeBuffer[codeBytes] = ' ';
-
-    if (version == HttpVersion::Http1_0) {
-        ioBufs[0].buffer = "HTTP/1.0 ";
-    } else {
-        ioBufs[0].buffer = "HTTP/1.1 ";
-    }
-    ioBufs[0].bufferLen = 9;
-    ioBufs[1].buffer = codeBuffer;
-    ioBufs[1].bufferLen = codeBytes + 1;
-    ioBufs[2].buffer = (char*)statusText.data();
-    ioBufs[2].bufferLen = (uint32_t)statusText.length();
-    ioBufs[3].buffer = "\r\n";
-    ioBufs[3].bufferLen = 2;
-
-    for (size_t i = 0; i < headerNames.size(); i++) {
-        const String& headerName = headerNames[i];
-        const String& headerValue = headerValues[i];
-
-        size_t offset = (4 * i) + 4;
-        ioBufs[offset].buffer = (char*)headerName.data();
-        ioBufs[offset].bufferLen = (uint32_t)headerName.length();
-        ioBufs[offset + 1].buffer = ": ";
-        ioBufs[offset + 1].bufferLen = 2;
-        ioBufs[offset + 2].buffer = (char*)headerValue.data();
-        ioBufs[offset + 2].bufferLen = (uint32_t)headerValue.length();
-        ioBufs[offset + 3].buffer = "\r\n";
-        ioBufs[offset + 3].bufferLen = 2;
-    }
-
-    ioBufs[buffersNeeded - 1].buffer = "\r\n";
-    ioBufs[buffersNeeded - 1].bufferLen = 2;
-
-    return streamSource->writev(ioBufs, buffersNeeded);
+    return writeHeadersAndBody(nullptr, 0);
 }

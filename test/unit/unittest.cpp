@@ -121,6 +121,8 @@ int main(int argc, const char** argv) {
     RUN_TEST(test_http1_keepalive);
 
     RUN_TEST(test_http1_1_chunked_request);
+    RUN_TEST(test_http1_1_chunked_response);
+    RUN_TEST(test_http1_1_auto_chunked_response);
     RUN_TEST(test_http1_1_keepalive);
 
     // Http2 functionality

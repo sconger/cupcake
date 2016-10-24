@@ -4,10 +4,16 @@
 
 #include "cupcake/http/Http.h"
 
-#include "cupcake_priv/http/BufferedReader.h"
+#include "cupcake_priv/http/StreamSource.h"
 
 namespace Cupcake {
 
+/*
+ * HttpOutputStream for responses where the user has specified a Content-Length.
+ *
+ * This is basically a straight pass through to the socket, except that it will
+ * error if the wrong number of byes are written.
+ */
 class ContentLengthWriter : public HttpOutputStream {
 public:
     ContentLengthWriter();

@@ -5,6 +5,7 @@
 #include "cupcake/http/Http.h"
 #include "cupcake/http/HttpError.h"
 
+#include "cupcake_priv/http/BufferedContentLengthWriter.h"
 #include "cupcake_priv/http/ChunkedWriter.h"
 #include "cupcake_priv/http/ContentLengthWriter.h"
 #include "cupcake_priv/http/StreamSource.h"
@@ -24,6 +25,9 @@ public:
 
     HttpError close() override;
 
+    // For special case of buffering data for unknown Content-Length
+    HttpError writeHeadersAndBody(const char* content, size_t contentLen);
+
 private:
     enum class ResponseStatus;
 
@@ -38,6 +42,7 @@ private:
     ResponseStatus respStatus;
 
     HttpOutputStream* httpOutputStream;
+    BufferedContentLengthWriter bufferedContentLengthWriter;
     ContentLengthWriter contentLengthWriter;
     ChunkedWriter chunkedWriter;
 

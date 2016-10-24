@@ -121,15 +121,6 @@ bool test_http1_empty() {
         return false;
     }
 
-    if (totalBytesRead != expectedResponse.length()) {
-        testf("Did not receive expected response. Got:\n%.*s", (size_t)totalBytesRead, responseBuffer);
-        return false;
-    }
-    if (std::memcmp(expectedResponse.data(), responseBuffer, expectedResponse.length()) != 0) {
-        testf("Did not receive expected response. Got:\n%.*s", expectedResponse.length(), responseBuffer);
-        return false;
-    }
-
     server.shutdown();
 
     // Wait for server shutdown and check its error
@@ -138,6 +129,10 @@ bool test_http1_empty() {
 
     if (serverError != HttpError::Ok) {
         testf("Failed to start HTTP server with: %d", serverError);
+        return false;
+    }
+    if (StringRef(responseBuffer, totalBytesRead) != expectedResponse) {
+        testf("Did not receive expected response. Got:\n%.*s", (size_t)totalBytesRead, responseBuffer);
         return false;
     }
 
@@ -239,14 +234,6 @@ bool test_http1_contentlen_request() {
         testf("Failed to read from HTTP socket with: %d", socketErr);
         return false;
     }
-    if (totalBytesRead != expectedResponse.length()) {
-        testf("Did not receive expected response. Got:\n%.*s", (size_t)totalBytesRead, responseBuffer);
-        return false;
-    }
-    if (std::memcmp(expectedResponse.data(), responseBuffer, expectedResponse.length()) != 0) {
-        testf("Did not receive expected response. Got:\n%.*s", expectedResponse.length(), responseBuffer);
-        return false;
-    }
 
     server.shutdown();
 
@@ -258,7 +245,10 @@ bool test_http1_contentlen_request() {
         testf("Failed to start HTTP server with: %d", serverError);
         return false;
     }
-
+    if (StringRef(responseBuffer, totalBytesRead) != expectedResponse) {
+        testf("Did not receive expected response. Got:\n%.*s", (size_t)totalBytesRead, responseBuffer);
+        return false;
+    }
     if (!gotExpectedPost) {
         testf("Did not read back expected post data");
         return false;
@@ -277,20 +267,11 @@ bool test_http1_contentlen_request() {
 
 // Tests that a Content-Length response is generated automatically if no headers are set
 bool test_http1_auto_contentlen_response() {
-    return true;
-}
-
-// Tests that a request with transfer encoding is rejected
-bool test_http1_request_with_transfer_encoding() {
-    return true;
-}
-
-// Test that attempting send a HTTP1.0 response with Transfer-Encoding header errors
-bool test_http1_response_with_transfer_encoding() {
     Socket acceptSocket;
     SocketError socketErr;
     HttpServer server;
     HttpError serverError;
+    HttpError responseError;
     std::mutex serverMutex;
     std::condition_variable serverCond;
     bool isShutdown = false;
@@ -304,16 +285,115 @@ bool test_http1_response_with_transfer_encoding() {
     uint16_t boundPort = acceptSocket.getLocalAddress().getPort();
     StreamSourceSocket streamSource(std::move(acceptSocket));
 
-    server.addHandler("/index.html", [&serverError](HttpRequest& request, HttpResponse& response) {
+    server.addHandler("/index.html", [&responseError](HttpRequest& request, HttpResponse& response) {
+        response.setStatus(200, "OK");
+
+        HttpError err;
+        HttpOutputStream* stream;
+        std::tie(stream, err) = response.getOutputStream();
+        if (err != HttpError::Ok) {
+            responseError = err;
+            return;
+        }
+        responseError = stream->write("Hello World!", 12);
+    });
+
+    Async::runAsync([&streamSource, &server, &serverError, &serverMutex, &serverCond, &isShutdown] {
+        HttpError err = server.start(&streamSource);
+
+        std::unique_lock<std::mutex> lock(serverMutex);
+        isShutdown = true;
+        serverError = err;
+        serverCond.notify_one();
+    });
+
+    StringRef request =
+        "GET /index.html HTTP/1.0\r\n"
+        "\r\n";
+    StringRef expectedResponse =
+        "HTTP/1.0 200 OK\r\n"
+        "Content-Length: 12\r\n"
+        "\r\n"
+        "Hello World!";
+    char responseBuffer[1024];
+
+    Socket requestSocket;
+    std::tie(requestSocket, socketErr) = getConnectedSocket(Addrinfo::getLoopback(INet::Protocol::Ipv6, boundPort));
+    if (socketErr != SocketError::Ok) {
+        testf("Failed to connect to HTTP socket with: %d", socketErr);
+        return false;
+    }
+    socketErr = requestSocket.write(request.data(), request.length());
+    if (socketErr != SocketError::Ok) {
+        testf("Failed to write to HTTP socket with: %d", socketErr);
+        return false;
+    }
+    uint32_t totalBytesRead = 0;
+    std::tie(totalBytesRead, socketErr) = readFully(&requestSocket, responseBuffer, sizeof(responseBuffer));
+    if (socketErr != SocketError::Ok) {
+        testf("Failed to read from HTTP socket with: %d", socketErr);
+        return false;
+    }
+
+    server.shutdown();
+
+    // Wait for server shutdown and check its error
+    std::unique_lock<std::mutex> lock(serverMutex);
+    serverCond.wait(lock, [&isShutdown] {return isShutdown; });
+
+    if (serverError != HttpError::Ok) {
+        testf("Failed to start HTTP server with: %d", serverError);
+        return false;
+    }
+    if (responseError != HttpError::Ok) {
+        testf("Error generated when writing response: %d", serverError);
+        return false;
+    }
+    if (StringRef(responseBuffer, totalBytesRead) != expectedResponse) {
+        testf("Did not receive expected response. Got:\n%.*s", (size_t)totalBytesRead, responseBuffer);
+        return false;
+    }
+
+    return true;
+}
+
+// Tests that a request with transfer encoding is rejected
+bool test_http1_request_with_transfer_encoding() {
+    return true;
+}
+
+// Test that attempting send a HTTP1.0 response with Transfer-Encoding header errors
+//
+// TODO: Test doesn't really work. Should probably auto-generate internal server error.
+bool test_http1_response_with_transfer_encoding() {
+    Socket acceptSocket;
+    SocketError socketErr;
+    HttpServer server;
+    HttpError serverError;
+    HttpError responseError;
+    std::mutex serverMutex;
+    std::condition_variable serverCond;
+    bool isShutdown = false;
+
+    std::tie(acceptSocket, socketErr) = getAcceptingSocket(Addrinfo::getLoopback(INet::Protocol::Ipv6, 0));
+    if (socketErr != SocketError::Ok) {
+        testf("Failed to bind socket for accept with: %d", socketErr);
+        return false;
+    }
+
+    uint16_t boundPort = acceptSocket.getLocalAddress().getPort();
+    StreamSourceSocket streamSource(std::move(acceptSocket));
+
+    server.addHandler("/index.html", [&responseError](HttpRequest& request, HttpResponse& response) {
         response.setStatus(200, "OK");
         response.addHeader("Transfer-Encoding", "Chunked");
 
         HttpOutputStream* outputStream;
-        std::tie(outputStream, serverError) = response.getOutputStream();
-        if (serverError != HttpError::Ok) {
+        std::tie(outputStream, responseError) = response.getOutputStream();
+        if (responseError != HttpError::Ok) {
             return;
         }
-        serverError = outputStream->write("0123456789", 10);
+        responseError = outputStream->write("0123456789", 10);
     });
 
     Async::runAsync([&streamSource, &server, &serverError, &serverMutex, &serverCond, &isShutdown] {
@@ -345,7 +425,7 @@ bool test_http1_response_with_transfer_encoding() {
         testf("Failed to read from HTTP socket with: %d", socketErr);
         return false;
     }
-    // Don't bother checking response (expect failure)
+    // TODO: Should generate internal server error. Should check that here.
 
     server.shutdown();
 
@@ -355,6 +435,10 @@ bool test_http1_response_with_transfer_encoding() {
 
     if (serverError != HttpError::Ok) {
         testf("Failed to start HTTP server with: %d", serverError);
+        return false;
+    }
+    if (responseError != HttpError::InvalidHeader) {
+        testf("Expected an error when generating response, but no error indicated");
         return false;
     }
 
@@ -448,12 +532,8 @@ bool test_http1_keepalive() {
             testf("Failed to read from HTTP socket with: %d", socketErr);
             return false;
         }
-        if (totalBytesRead != expectedResponse.length()) {
+        if (StringRef(responseBuffer, totalBytesRead) != expectedResponse) {
             testf("Did not receive expected response. Got:\n%.*s", (size_t)totalBytesRead, responseBuffer);
-            return false;
-        }
-        if (std::memcmp(expectedResponse.data(), responseBuffer, expectedResponse.length()) != 0) {
-            testf("Did not receive expected response. Got:\n%.*s", expectedResponse.length(), responseBuffer);
             return false;
         }
     }
