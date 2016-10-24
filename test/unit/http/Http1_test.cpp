@@ -305,14 +305,8 @@ bool test_http1_response_with_transfer_encoding() {
     StreamSourceSocket streamSource(std::move(acceptSocket));
 
     server.addHandler("/index.html", [&serverError](HttpRequest& request, HttpResponse& response) {
-        serverError = response.setStatus(200, "OK");
-        if (serverError != HttpError::Ok) {
-            return;
-        }
-        serverError = response.addHeader("Transfer-Encoding", "Chunked");
-        if (serverError != HttpError::Ok) {
-            return;
-        }
+        response.setStatus(200, "OK");
+        response.addHeader("Transfer-Encoding", "Chunked");
 
         HttpOutputStream* outputStream;
         std::tie(outputStream, serverError) = response.getOutputStream();
