@@ -9,6 +9,7 @@ enum class SocketError : uint32_t {
 
     // Generic errors
     InvalidArgument, // EINVAL, ENOPROTOOPT, WSAEINVAL,
+    IoError, // EIO
     // ERROR_INVALID_PARAMETER, ERROR_BAD_ARGUMENTS
     InvalidHandle, // ENOTSOCK, EBADF, WSAENOTSOCK
     TooManyHandles, // ENFILE, EMFILE

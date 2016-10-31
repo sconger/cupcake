@@ -3,17 +3,9 @@ add_subdirectory(net)
 add_subdirectory(text)
 add_subdirectory(util)
 
-if(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
-set(LOCAL
-  ${CMAKE_CURRENT_SOURCE_DIR}/Cupcake_priv_win.h
-)
-else()
-
-endif()
-
-set(LOCAL
-  ${LOCAL}
-  ${CMAKE_CURRENT_SOURCE_DIR}/CString.h
+file(GLOB
+  LOCAL
+  "*.h"
 )
 
 set(CUPCAKE_SRC

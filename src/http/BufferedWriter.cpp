@@ -30,7 +30,6 @@ HttpError BufferedWriter::write(const char* writeBuf, uint32_t inBufferLen) {
     writeBufs[1].buffer = (char*)writeBuf;
     writeBufs[1].bufferLen = inBufferLen;
 
-    uint32_t prevIndex = index;
     HttpError err = streamSource->writev(writeBufs, 2);
     if (err == HttpError::Ok) {
         index = 0;

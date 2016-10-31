@@ -1,10 +1,8 @@
 
-#ifndef CUPCAKE_SOCKET_IMPL_H
-#define CUPCAKE_SOCKET_IMPL_H
+#ifndef CUPCAKE_SOCKET_IMPL_WIN_H
+#define CUPCAKE_SOCKET_IMPL_WIN_H
 
-#ifndef _WIN32
-#error "This file should only be included in a Windows build"
-#endif
+#ifdef _WIN32
 
 #include "cupcake/net/Socket.h"
 #include "cupcake/net/SocketError.h"
@@ -91,4 +89,6 @@ private:
 
 }
 
-#endif // CUPCAKE_SOCKET_IMPL_H
+#endif // _WIN32
+
+#endif // CUPCAKE_SOCKET_IMPL_WIN_H

@@ -4,7 +4,7 @@
 #if defined(__linux__)
 
 #elif defined(__APPLE__)
-
+#include "cupcake_priv/net/SocketImpl_darwin.h"
 #elif defined(_WIN32)
 #include "cupcake_priv/net/SocketImpl_win.h"
 #endif

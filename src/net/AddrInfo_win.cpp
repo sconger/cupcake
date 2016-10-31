@@ -1,7 +1,5 @@
 
-#ifndef _WIN32
-#error "This file should only be included in a Windows build"
-#endif
+#ifdef _WIN32
 
 #include "cupcake/net/AddrInfo.h"
 
@@ -232,3 +230,5 @@ SocketError asyncLookup(void* context,
 } // End namespace Addrinfo
 
 } // End namespace Cupcake
+
+#endif // _WIN32

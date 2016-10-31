@@ -19,10 +19,10 @@ HttpResponseImpl::HttpResponseImpl(HttpVersion version, StreamSource* streamSour
     httpOutputStream(nullptr),
     contentLengthWriter(),
     chunkedWriter(),
-    bodyWritten(false),
     setContentLength(false),
     contentLength(0),
-    setTeChunked(false)
+    setTeChunked(false),
+    bodyWritten(false)
 {}
 
 HttpError HttpResponseImpl::setStatus(uint32_t code, StringRef statusText) {
@@ -36,16 +36,16 @@ HttpError HttpResponseImpl::setStatus(uint32_t code, StringRef statusText) {
 
     INet::IoBuffer ioBufs[4];
     if (version == HttpVersion::Http1_0) {
-        ioBufs[0].buffer = "HTTP/1.0 ";
+        ioBufs[0].buffer = (char*)"HTTP/1.0 ";
     } else {
-        ioBufs[0].buffer = "HTTP/1.1 ";
+        ioBufs[0].buffer = (char*)"HTTP/1.1 ";
     }
     ioBufs[0].bufferLen = 9;
     ioBufs[1].buffer = codeBuffer;
     ioBufs[1].bufferLen = codeBytes + 1;
     ioBufs[2].buffer = (char*)statusText.data();
     ioBufs[2].bufferLen = (uint32_t)statusText.length();
-    ioBufs[3].buffer = "\r\n";
+    ioBufs[3].buffer = (char*)"\r\n";
     ioBufs[3].bufferLen = 2;
 
     return streamSource->writev(ioBufs, 4);
@@ -80,11 +80,11 @@ HttpError HttpResponseImpl::addHeader(StringRef headerName, StringRef headerValu
     INet::IoBuffer ioBufs[4];
     ioBufs[0].buffer = (char*)headerName.data();
     ioBufs[0].bufferLen = (uint32_t)headerName.length();
-    ioBufs[1].buffer = ": ";
+    ioBufs[1].buffer = (char*)": ";
     ioBufs[1].bufferLen = 2;
     ioBufs[2].buffer = (char*)headerValue.data();
     ioBufs[2].bufferLen = (uint32_t)headerValue.length();
-    ioBufs[3].buffer = "\r\n";
+    ioBufs[3].buffer = (char*)"\r\n";
     ioBufs[3].bufferLen = 2;
 
     return streamSource->writev(ioBufs, 4);

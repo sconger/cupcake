@@ -15,7 +15,7 @@ using namespace Cupcake;
 
 // TODO: Put in common file
 static
-std::tuple<Socket, SocketError> getAcceptingSocket(SockAddr& sockAddr) {
+std::tuple<Socket, SocketError> getAcceptingSocket(const SockAddr& sockAddr) {
     Socket socket;
     SocketError err = socket.init(sockAddr.getFamily());
     if (err != SocketError::Ok) {
@@ -36,7 +36,7 @@ std::tuple<Socket, SocketError> getAcceptingSocket(SockAddr& sockAddr) {
 }
 
 static
-std::tuple<Socket, SocketError> getConnectedSocket(SockAddr sockAddr) {
+std::tuple<Socket, SocketError> getConnectedSocket(const SockAddr sockAddr) {
     Socket requestSocket;
     SocketError socketErr = requestSocket.init(sockAddr.getFamily());
     if (socketErr != SocketError::Ok) {
@@ -82,7 +82,7 @@ bool test_http1_1_chunked_request() {
     HttpError postError = HttpError::Ok;
     bool hadCorrectHeader = false;
 
-    std::tie(acceptSocket, socketErr) = getAcceptingSocket(Addrinfo::getLoopback(INet::Protocol::Ipv6, 0));
+    std::tie(acceptSocket, socketErr) = ::getAcceptingSocket(Addrinfo::getLoopback(INet::Protocol::Ipv6, 0));
     if (socketErr != SocketError::Ok) {
         testf("Failed to bind socket for accept with: %d", socketErr);
         return false;
@@ -98,7 +98,6 @@ bool test_http1_1_chunked_request() {
         HttpError readErr;
         uint32_t readBytes;
         uint32_t totalRead = 0;
-        bool doneReading = false;
         do {
             std::tie(readBytes, readErr) = httpInputStream.read(readBuffer + totalRead, 3); // Intentionally small reads
             totalRead += readBytes;

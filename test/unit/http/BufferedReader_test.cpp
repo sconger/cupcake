@@ -61,11 +61,12 @@ public:
         return HttpError::Ok;
     }
 
-    uint32_t readCount;
+    uint32_t getReadCount() { return readCount; }
 
 private:
     const char* sourceData;
     size_t dataLen;
+    uint32_t readCount;
 };
 
 bool test_bufferedreader_basic() {
@@ -104,7 +105,7 @@ bool test_bufferedreader_basic() {
         return false;
     }
 
-    if (testSource.readCount != 1) {
+    if (testSource.getReadCount() != 1) {
         testf("More than one read to source stream occurred (did not buffer correctly)");
         return false;
     }

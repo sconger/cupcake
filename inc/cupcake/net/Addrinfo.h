@@ -31,11 +31,13 @@ SocketError addrLookup(SockAddr* dest,
                        INet::Protocol prot);
 
 // Does an asynchronous address lookup.
+/*
 SocketError asyncLookup(void* context,
                         const StringRef name,
                         uint16_t port,
                         INet::Protocol prot,
                         const lookupCallback& callback);
+*/
 }
 
 }

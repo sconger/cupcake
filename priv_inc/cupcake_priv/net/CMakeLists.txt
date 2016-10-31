@@ -1,10 +1,7 @@
-if(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
-set(LOCAL
-  ${CMAKE_CURRENT_SOURCE_DIR}/SocketImpl_win.h
+file(GLOB
+LOCAL
+"*.h"
 )
-else()
-
-endif()
 
 set(CUPCAKE_SRC
   ${CUPCAKE_SRC}

@@ -1,5 +1,5 @@
 
-#ifdef _WIN32
+#ifndef _WIN32
 
 #include "cupcake/net/SockAddr.h"
 
@@ -7,22 +7,22 @@
 #include <cstdio>
 #include <cstring>
 
-#include <Windows.h>
-#include <Ws2tcpip.h>
-#include <Mstcpip.h>
+#include <arpa/inet.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
 
 using namespace Cupcake;
 
 SockAddr::SockAddr() {
-    std::memset(&storage, 0, sizeof(SOCKADDR_STORAGE));
+    std::memset(&storage, 0, sizeof(sockaddr_storage));
 }
 
 SockAddr::SockAddr(const SockAddr& other) {
-    std::memcpy(&storage, &other.storage, sizeof(SOCKADDR_STORAGE));
+    std::memcpy(&storage, &other.storage, sizeof(sockaddr_storage));
 }
 
 SockAddr& SockAddr::operator=(const SockAddr& other) {
-    std::memmove(&storage, &other.storage, sizeof(SOCKADDR_STORAGE));
+    std::memmove(&storage, &other.storage, sizeof(sockaddr_storage));
     return *this;
 }
 
@@ -49,79 +49,54 @@ uint16_t SockAddr::getPort() const {
 bool SockAddr::isAddrAny() const {
     if (storage.ss_family == AF_INET) {
         sockaddr_in* addr = (sockaddr_in*)&storage;
-        return !!IN4ADDR_ISANY(addr);
+        return addr->sin_addr.s_addr == INADDR_ANY;
     } else {
         sockaddr_in6* addr = (sockaddr_in6*)&storage;
-        return !!IN6ADDR_ISANY(addr);
+        return IN6_IS_ADDR_UNSPECIFIED(&addr->sin6_addr);
     }
 }
 
 bool SockAddr::isLoopback() const {
     if (storage.ss_family == AF_INET) {
         sockaddr_in* addr = (sockaddr_in*)&storage;
-        return !!IN4ADDR_ISLOOPBACK(addr);
+        return addr->sin_addr.s_addr == INADDR_LOOPBACK;
     } else {
         sockaddr_in6* addr = (sockaddr_in6*)&storage;
-        return !!IN6ADDR_ISLOOPBACK(addr);
+        return IN6_IS_ADDR_LOOPBACK(&addr->sin6_addr);
     }
 }
 
 String SockAddr::toString() const {
-    wchar_t wbuffer[64]; // Arbitrary, but should be large enough
-    char buffer[256];
-    DWORD len = sizeof(wbuffer) / sizeof(wchar_t);
-
-    int toStrRes = ::WSAAddressToStringW((SOCKADDR*)&storage,
-        sizeof(SOCKADDR_STORAGE),
-        NULL,
-        wbuffer,
-        &len);
-
-    if (toStrRes != 0) {
-        // TODO: log
-        ::DebugBreak();
+    char buffer[64];
+    
+    const char* res = inet_ntop(storage.ss_family, buffer,
+                                (char*)&storage, (socklen_t)sizeof(sockaddr_storage));
+    if (!res) {
+        // TODO
     }
 
-    int convRes = ::WideCharToMultiByte(CP_UTF8,
-        WC_ERR_INVALID_CHARS,
-        wbuffer,
-        len,
-        buffer,
-        sizeof(buffer),
-        NULL,
-        NULL);
-
-    if (convRes == 0) {
-        // TODO: log
-        ::DebugBreak();
-    }
-
-    return String(buffer, convRes);
+    return String(buffer);
 }
 
 bool SockAddr::operator==(const SockAddr& other) {
     if (storage.ss_family != other.storage.ss_family) {
         return false;
     }
-
+    
     if (storage.ss_family == AF_INET) {
         sockaddr_in* addrin = (sockaddr_in*)&storage;
         sockaddr_in* other_addrin = (sockaddr_in*)&storage;
         if (addrin->sin_port != other_addrin->sin_port) {
             return false;
         }
-        return std::memcmp(&addrin->sin_addr,
-            &other_addrin->sin_addr,
-            sizeof(IN_ADDR)) == 0;
+        return addrin->sin_addr.s_addr == other_addrin->sin_addr.s_addr;
     } else {
         sockaddr_in6* addrin = (sockaddr_in6*)&storage;
         sockaddr_in6* other_addrin = (sockaddr_in6*)&storage;
         if (addrin->sin6_port != other_addrin->sin6_port) {
             return false;
         }
-        return std::memcmp(&addrin->sin6_addr,
-            &other_addrin->sin6_addr,
-            sizeof(IN6_ADDR)) == 0;
+        return IN6_ARE_ADDR_EQUAL(&addrin->sin6_addr, &other_addrin->sin6_addr);
     }
 }
 
@@ -129,14 +104,14 @@ bool SockAddr::operator!=(const SockAddr& other) {
     return !(*this == other);
 }
 
-SockAddr SockAddr::fromNative(const SOCKADDR_STORAGE* storagePtr) {
+SockAddr SockAddr::fromNative(const sockaddr_storage* storagePtr) {
     SockAddr res;
-    std::memcpy(&res.storage, storagePtr, sizeof(SOCKADDR_STORAGE));
+    std::memcpy(&res.storage, storagePtr, sizeof(sockaddr_storage));
     return res;
 }
 
-void SockAddr::toNative(SOCKADDR_STORAGE* dest) const {
-    std::memcpy(dest, &storage, sizeof(SOCKADDR_STORAGE));
+void SockAddr::toNative(sockaddr_storage* dest) const {
+    std::memcpy(dest, &storage, sizeof(sockaddr_storage));
 }
 
-#endif // _WIN32
+#endif // !_WIN32

@@ -14,8 +14,7 @@ class ReadTestSource : public StreamSource {
 public:
     ReadTestSource(const char* sourceData, size_t dataLen) :
         sourceData(sourceData),
-        dataLen(dataLen),
-        readCount(0) {}
+        dataLen(dataLen) {}
 
     std::tuple<StreamSource*, HttpError> accept() override {
         return std::make_tuple(nullptr, HttpError::Ok);
@@ -24,8 +23,6 @@ public:
         if (dataLen == 0) {
             return std::make_tuple(0, HttpError::Eof);
         }
-
-        readCount++;
 
         uint32_t copyLen = std::min((uint32_t)dataLen, bufferLen);
         std::memcpy(buffer, sourceData, copyLen);
@@ -37,8 +34,6 @@ public:
         if (dataLen == 0) {
             return std::make_tuple(0, HttpError::Eof);
         }
-
-        readCount++;
 
         uint32_t bytesCopied = 0;
         for (uint32_t i = 0; i < bufferCount && dataLen > 0; i++) {
@@ -59,8 +54,6 @@ public:
     HttpError close() override {
         return HttpError::Ok;
     }
-
-    uint32_t readCount;
 
 private:
     const char* sourceData;
@@ -172,7 +165,6 @@ bool test_chunkedreader_bad_data_line() {
     ChunkedReader reader(bufferedReader);
 
     char readBuffer[1024];
-    size_t readIndex = 0;
     HttpError err;
     uint32_t bytesRead;
 

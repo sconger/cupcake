@@ -4,8 +4,8 @@
 
 #include "cupcake/Cupcake.h"
 
+#include <cstdint>
 #include <functional>
-#include <stddef.h>
 
 class String;
 

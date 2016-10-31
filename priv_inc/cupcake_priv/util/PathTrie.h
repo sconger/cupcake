@@ -38,17 +38,17 @@ private:
     class TrieNode {
     public:
         TrieNode() :
-            children(),
-            hasValue(false),
             regexEnd(false),
-            value()
+            hasValue(false),
+            value(),
+            children()
         {}
 
         TrieNode(T val) :
-            children(),
-            hasValue(true),
             regexEnd(false),
-            value(val)
+            hasValue(true),
+            value(val),
+            children()
         {}
 
         String prefix;

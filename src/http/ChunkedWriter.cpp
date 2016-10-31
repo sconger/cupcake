@@ -33,11 +33,11 @@ HttpError ChunkedWriter::write(const char* buffer, uint32_t bufferLen) {
     INet::IoBuffer writeBufs[4];
     writeBufs[0].buffer = lengthBuffer;
     writeBufs[0].bufferLen = (uint32_t)hexLen;
-    writeBufs[1].buffer = "\r\n";
+    writeBufs[1].buffer = (char*)"\r\n";
     writeBufs[1].bufferLen = 2;
     writeBufs[2].buffer = (char*)buffer;
     writeBufs[2].bufferLen = bufferLen;
-    writeBufs[3].buffer = "\r\n";
+    writeBufs[3].buffer = (char*)"\r\n";
     writeBufs[3].bufferLen = 2;
 
     return streamSource->writev(writeBufs, 4);

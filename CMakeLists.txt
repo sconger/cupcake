@@ -4,27 +4,32 @@ set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
 # http://stackoverflow.com/questions/31966135/cmake-source-group-not-working-correctly-with-hierarchical-project-setup
 function(_gen_source_group FILES)
-  if(MSVC)
-    foreach(FILE ${FILES}) 
-      # Get the directory of the source file
-      get_filename_component(PARENT_DIR "${FILE}" DIRECTORY)
+  foreach(FILE ${FILES}) 
+    # Get the directory of the source file
+    get_filename_component(PARENT_DIR "${FILE}" DIRECTORY)
 
-      # Remove common directory prefix to make the group
-      string(REPLACE "${CMAKE_CURRENT_SOURCE_DIR}" "" GROUP "${PARENT_DIR}")
+    # Remove common directory prefix to make the group
+    string(REPLACE "${CMAKE_CURRENT_SOURCE_DIR}" "" GROUP "${PARENT_DIR}")
 
-      # Make sure we are using windows slashes
-      string(REPLACE "/" "\\" GROUP "${GROUP}")
+    # Make sure we are using windows slashes
+    string(REPLACE "/" "\\" GROUP "${GROUP}")
 
+    if (MSVC)
       # Group into "Source Files" and "Header Files"
       if ("${FILE}" MATCHES ".*\\.cpp")
         set(GROUP "Source Files${GROUP}")
       elseif("${FILE}" MATCHES ".*\\.h")
         set(GROUP "Header Files${GROUP}")
       endif()
-
-      source_group("${GROUP}" FILES "${FILE}")
-    endforeach()
-  endif()
+    else()
+      if ("${FILE}" MATCHES ".*\\.cpp")
+        set(GROUP "${GROUP}")
+      elseif("${FILE}" MATCHES ".*\\.h")
+        set(GROUP "${GROUP}")
+      endif()
+    endif()
+    source_group("${GROUP}" FILES "${FILE}")
+  endforeach()
 endfunction(_gen_source_group)
 
 if(MSVC)
@@ -35,7 +40,8 @@ if(MSVC)
   STRING (REGEX REPLACE "/RTC(su|[1su])" "" CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}")
   STRING (REGEX REPLACE "/RTC(su|[1su])" "" CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}")
 else()
-  set(CMAKE_CXX_FLAGS "-std=c++11 -Wall")
+  #set(CMAKE_CXX_FLAGS "-std=c++14 -stdlib=libc++ -fcoroutines-ts -Wall")
+  set(CMAKE_CXX_FLAGS "-std=c++14 -Wall")
   set(CMAKE_CXX_FLAGS_DEBUG "-g")
   set(CMAKE_CXX_FLAGS_RELEASE "-O2 -flto -DNDEBUG")
 

@@ -32,8 +32,8 @@ enum class HttpConnection::HttpState {
 };
 
 HttpConnection::HttpConnection(StreamSource* streamSource, const HandlerMap* handlerMap) :
-    streamSource(streamSource),
     handlerMap(handlerMap),
+    streamSource(streamSource),
     state(HttpState::Headers),
     keepAlive(false),
     hasContentLength(false),
@@ -345,16 +345,16 @@ HttpError HttpConnection::sendStatus(uint32_t code, const StringRef reasonPhrase
     INet::IoBuffer ioBufs[4];
 
     if (curVersion == HttpVersion::Http1_0) {
-        ioBufs[0].buffer = "HTTP/1.0 ";
+        ioBufs[0].buffer = (char*)"HTTP/1.0 ";
     } else {
-        ioBufs[0].buffer = "HTTP/1.1 ";
+        ioBufs[0].buffer = (char*)"HTTP/1.1 ";
     }
     ioBufs[0].bufferLen = 9;
     ioBufs[1].buffer = codeBuffer;
     ioBufs[1].bufferLen = codeBytes + 1;
     ioBufs[2].buffer = (char*)reasonPhrase.data();
     ioBufs[2].bufferLen = (uint32_t)reasonPhrase.length();
-    ioBufs[3].buffer = "\r\n\r\n";
+    ioBufs[3].buffer = (char*)"\r\n\r\n";
     ioBufs[3].bufferLen = 4;
 
     return streamSource->writev(ioBufs, 3);

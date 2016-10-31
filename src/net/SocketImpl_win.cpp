@@ -1,8 +1,5 @@
-// socket_win.cpp
 
-#ifndef _WIN32
-#error "This file should only be included in a Windows build"
-#endif
+#ifdef _WIN32
 
 #include "cupcake/net/Socket.h"
 
@@ -924,3 +921,5 @@ SocketError SocketImpl::setWriteBuf(uint32_t bufferSize) {
 
     return SocketError::Ok;
 }
+
+#endif // _WIN32

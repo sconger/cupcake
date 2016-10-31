@@ -21,8 +21,8 @@ bool test_pathtrie_exactmatch() {
 
     std::vector<int> vals;
     std::vector<bool> founds;
-    std::array<const char*, 6> testVals{"abc", "ab", "a", "abcdef", "aq", "abcdzf"};
-    std::array<int, 6> expectedVals{1, 2, 3, 4, 0, 5};
+    std::array<const char*, 6> testVals{{"abc", "ab", "a", "abcdef", "aq", "abcdzf"}};
+    std::array<int, 6> expectedVals{{1, 2, 3, 4, 0, 5}};
 
     for (size_t i = 0; i < testVals.size(); i++) {
         const char* str = testVals[i];
@@ -63,8 +63,8 @@ bool test_pathtrie_regex() {
 
     std::vector<int> vals;
     std::vector<bool> founds;
-    std::array<const char*, 5> testVals{"abc", "abcd", "abczzzzzzzz", "ab", "a"};
-    std::array<int, 5> expectedVals{1, 1, 1, 0, 2};
+    std::array<const char*, 5> testVals{{"abc", "abcd", "abczzzzzzzz", "ab", "a"}};
+    std::array<int, 5> expectedVals{{1, 1, 1, 0, 2}};
 
     for (size_t i = 0; i < testVals.size(); i++) {
         const char* str = testVals[i];
@@ -100,8 +100,8 @@ bool test_pathtrie_regex() {
 bool test_pathtrie_collision() {
     PathTrie<int> trie;
 
-    std::array<const char*, 8> paths = {"aaaa", "aaa", "aaaa", "aaa", "a*", "aaa*", "aaaa*", "aaaaa*"};
-    std::array<bool, 8> expected = {true, true, false, false, false, false, false, true};
+    std::array<const char*, 8> paths = {{"aaaa", "aaa", "aaaa", "aaa", "a*", "aaa*", "aaaa*", "aaaaa*"}};
+    std::array<bool, 8> expected = {{true, true, false, false, false, false, false, true}};
 
     for (size_t i = 0; i < paths.size(); i++) {
         const char* path = paths[i];

@@ -174,7 +174,6 @@ bool test_socket_vector() {
 
 bool test_socket_accept_multiple() {
     SocketError err;
-    SocketError writeErr;
     SockAddr bindAddr = Addrinfo::getAddrAny(INet::Protocol::Ipv4);
 
     Socket socket;

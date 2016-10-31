@@ -7,6 +7,9 @@
 // Define missing std functions from cstring if visual studio
 #ifdef _MSC_VER
 #include <memory.h>
+#endif
+
+#if defined(_MSC_VER) || defined(__APPLE__)
 namespace std {
 void* memrchr(void* ptr, int ch, std::size_t count) {
     unsigned char val = (unsigned char)ch;

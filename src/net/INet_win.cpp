@@ -1,7 +1,5 @@
 
-#ifndef _WIN32
-#error "This file should only be included in a Windows build"
-#endif
+#ifdef _WIN32
 
 #include "cupcake/net/Inet.h"
 
@@ -40,3 +38,5 @@ std::tuple<String, SocketError> getHostName() {
 }
 
 }
+
+#endif // _WIN32
