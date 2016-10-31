@@ -138,7 +138,7 @@ HttpError HttpConnection::innerRun() {
 
         handler(requestImpl, responseImpl);
 
-        err = responseImpl.addBlankLineIfNeeded();
+        err = responseImpl.close();
         if (err != HttpError::Ok) {
             return err;
         }

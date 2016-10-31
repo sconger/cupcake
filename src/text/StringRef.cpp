@@ -165,14 +165,14 @@ bool StringRef::engEqualsIgnoreCase(const StringRef strRef) const {
     for (size_t i = 0; i < len; i++) {
         char a = strData[i];
 
-        if (a >= 'a' || a <= 'z') {
-            a -= 'a' - 'A';
+        if (a >= 'a' && a <= 'z') {
+            a -= ('a' - 'A');
         }
 
         char b = strRef.strData[i];
 
-        if (b >= 'a' || b <= 'z') {
-            b -= 'a' - 'A';
+        if (b >= 'a' && b <= 'z') {
+            b -= ('a' - 'A');
         }
 
         if (a != b) {

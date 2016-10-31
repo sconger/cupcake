@@ -9,7 +9,7 @@
 
 #include "cupcake_priv/net/SocketImpl_darwin.h"
 
-//#include <experimental/resumable>
+#include <experimental/resumable>
 
 #include <errno.h>
 #include <sys/socket.h>
