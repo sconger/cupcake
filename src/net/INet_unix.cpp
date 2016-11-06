@@ -1,7 +1,7 @@
 
 #ifndef _WIN32
 
-#include "cupcake/net/Inet.h"
+#include "cupcake/net/INet.h"
 
 #include <errno.h>
 #include <unistd.h>

@@ -22,8 +22,7 @@ contentLengthWriter(),
 chunkedWriter(),
 setContentLength(false),
 contentLength(0),
-setTeChunked(false),
-bodyWritten(false)
+setTeChunked(false)
 {}
 
 void HttpResponseImpl::setStatus(uint32_t code, StringRef statusText) {

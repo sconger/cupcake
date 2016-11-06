@@ -3,7 +3,7 @@
 #ifndef CUPCAKE_SOCKADDR_H
 #define CUPCAKE_SOCKADDR_H
 
-#include "cupcake/net/Inet.h"
+#include "cupcake/net/INet.h"
 #include "cupcake/text/String.h"
 #include "cupcake/text/StringRef.h"
 

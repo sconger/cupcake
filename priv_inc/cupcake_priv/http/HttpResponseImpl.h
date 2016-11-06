@@ -55,7 +55,6 @@ private:
     bool setContentLength;
     uint64_t contentLength;
     bool setTeChunked;
-    mutable bool bodyWritten;
 };
 
 }

@@ -4,7 +4,7 @@
 
 #include "cupcake/http/Http.h"
 #include "cupcake/http/HttpError.h"
-#include "cupcake/net/Sockaddr.h"
+#include "cupcake/net/SockAddr.h"
 #include "cupcake/text/StringRef.h"
 
 #include "cupcake_priv/http/StreamSource.h"

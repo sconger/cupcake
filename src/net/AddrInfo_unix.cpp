@@ -1,7 +1,7 @@
 
 #ifndef _WIN32
 
-#include "cupcake/net/AddrInfo.h"
+#include "cupcake/net/Addrinfo.h"
 #include "cupcake_priv/CString.h"
 
 #include <cassert>

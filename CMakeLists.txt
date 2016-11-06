@@ -40,8 +40,15 @@ if(MSVC)
   STRING (REGEX REPLACE "/RTC(su|[1su])" "" CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}")
   STRING (REGEX REPLACE "/RTC(su|[1su])" "" CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}")
 else()
-  #set(CMAKE_CXX_FLAGS "-std=c++14 -stdlib=libc++ -fcoroutines-ts -Wall")
-  set(CMAKE_CXX_FLAGS "-std=c++14 -Wall")
+  set(CMAKE_CXX_FLAGS "-std=c++14 -fcoroutines-ts -Wall")
+
+  # Override default stdlib
+  # Obviously, need to update the paths here to make clang work
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -nostdinc++")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -I/Users/sconger/local/include/c++/v1")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -L/Users/sconger/local/lib")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wl,-rpath,/Users/sconger/local/lib")
   set(CMAKE_CXX_FLAGS_DEBUG "-g")
   set(CMAKE_CXX_FLAGS_RELEASE "-O2 -flto -DNDEBUG")
 
