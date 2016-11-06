@@ -32,6 +32,35 @@ function(_gen_source_group FILES)
   endforeach()
 endfunction(_gen_source_group)
 
+function(_add_dir_files LIST DIRNAME)
+  foreach(FILE ${FILES}) 
+    # Get the directory of the source file
+    get_filename_component(PARENT_DIR "${FILE}" DIRECTORY)
+
+    # Remove common directory prefix to make the group
+    string(REPLACE "${CMAKE_CURRENT_SOURCE_DIR}" "" GROUP "${PARENT_DIR}")
+
+    # Make sure we are using windows slashes
+    string(REPLACE "/" "\\" GROUP "${GROUP}")
+
+    if (MSVC)
+      # Group into "Source Files" and "Header Files"
+      if ("${FILE}" MATCHES ".*\\.cpp")
+        set(GROUP "Source Files${GROUP}")
+      elseif("${FILE}" MATCHES ".*\\.h")
+        set(GROUP "Header Files${GROUP}")
+      endif()
+    else()
+      if ("${FILE}" MATCHES ".*\\.cpp")
+        set(GROUP "${GROUP}")
+      elseif("${FILE}" MATCHES ".*\\.h")
+        set(GROUP "${GROUP}")
+      endif()
+    endif()
+    source_group("${GROUP}" FILES "${FILE}")
+  endforeach()
+endfunction(_add_dir_files)
+
 if(MSVC)
   set(CMAKE_CXX_FLAGS "/await /EHsc")
 
@@ -74,9 +103,11 @@ elseif(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
   set(OS_LIBS -lpthread)
 endif()
 
-add_subdirectory(src)
-add_subdirectory(inc)
-add_subdirectory(priv_inc)
+file(GLOB_RECURSE CUPCAKE_SRC
+  src/*.cpp
+  inc/*.h
+  priv_inc/*.h)
+
 add_subdirectory(test)
 
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR})
