@@ -12,8 +12,11 @@
 namespace Cupcake {
 
 /*
- * Buffered reader to simplify reading lines or hunks of known-size data. Holds
- * a reference to a socket, so it needs to be destroyed before the socket.
+ * Buffered reader that attempts to handle both line based and fixed length
+ * operations in a reasonably performant way, as a connection that goes
+ * through the HTTP upgrade will have to do both.
+ *
+ * Holds a reference to a StreamSource, so it needs to be destroyed before it.
  */
 class BufferedReader {
 public:
@@ -24,6 +27,7 @@ public:
 
     std::tuple<uint32_t, HttpError> read(char* buffer, uint32_t bufferLen);
     HttpError readFixedLength(char* buffer, uint32_t byteCount);
+    std::tuple<bool, HttpError> peekMatch(char* expectedData, uint32_t expectedDataLen);
     std::tuple<StringRef, HttpError> readLine(uint32_t maxLength);
 
 private:

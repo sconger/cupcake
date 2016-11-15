@@ -5,6 +5,8 @@ namespace Cupcake {
 
 namespace HuffmanData {
 
+// Pulled from here:
+// https://http2.github.io/http2-spec/compression.html#huffman.code
 const huffmanEncodeData huffmanEncodeTable[256] = {
     {13, 0x1ff8},
     {23, 0x7fffd8},
@@ -265,6 +267,9 @@ const huffmanEncodeData huffmanEncodeTable[256] = {
     // {30, 0x3fffffff}, // EOF (Don't need in table)
 };
 
+// This was generated using this script:
+// https://github.com/nghttp2/nghttp2/blob/master/mkhufftbl.py
+// Probably want to tweak the generation later. Haven't profiled the decoding
 const huffmanDecodeData huffmanDecodeTable[256][16] = {
     {
         {4, 0x00, 0},

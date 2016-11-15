@@ -31,8 +31,9 @@ enum class HttpConnection::HttpState {
     Failed,
 };
 
-HttpConnection::HttpConnection(StreamSource* streamSource, const HandlerMap* handlerMap) :
+HttpConnection::HttpConnection(StreamSource* streamSource, BufferedReader& bufReader, const HandlerMap* handlerMap) :
     handlerMap(handlerMap),
+    bufReader(bufReader),
     streamSource(streamSource),
     state(HttpState::Headers),
     keepAlive(false),
@@ -40,24 +41,36 @@ HttpConnection::HttpConnection(StreamSource* streamSource, const HandlerMap* han
     contentLength(0),
     isChunked(false),
     hasHost(false)
-{
-    bufReader.init(streamSource, 2048); // TODO: Define read constant somewhere
-}
+{}
 
 HttpConnection::~HttpConnection() {
     // TODO
 }
 
-void HttpConnection::run() {
+HttpConnection::UpgradeType HttpConnection::run() {
     // TODO: log
-    HttpError err = innerRun();
+    HttpError err;
+    UpgradeType upgradeType;
+    std::tie(upgradeType, err) = innerRun();
     err = streamSource->close();
+
+    return upgradeType;
 }
 
-HttpError HttpConnection::innerRun() {
+std::tuple<HttpConnection::UpgradeType, HttpError> HttpConnection::innerRun() {
     HttpError err;
     StringRef line;
     Status status;
+    bool http2Preface;
+
+    // Check for an HTTP2 preface (client knows HTTP2 is supported)
+    std::tie(http2Preface, err) = bufReader.peekMatch("PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n", 24);
+    if (err != HttpError::Ok) {
+        return std::make_tuple(UpgradeType::None, err);
+    }
+    if (http2Preface) {
+        return std::make_tuple(UpgradeType::H2C_Upgrade, HttpError::Ok);
+    }
 
     do {
         state = HttpState::Headers;
@@ -72,7 +85,7 @@ HttpError HttpConnection::innerRun() {
         // Read the request line
         std::tie(line, err) = bufReader.readLine(64 * 1024); // TODO: Define limit somewhere
         if (err != HttpError::Ok) {
-            return err;
+            return std::make_tuple(UpgradeType::None, err);
         }
 
         status = parseRequestLine(line);
@@ -84,7 +97,7 @@ HttpError HttpConnection::innerRun() {
         do {
             std::tie(line, err) = bufReader.readLine(1 * 1024 * 1024); // TODO: Define limit somewhere
             if (err != HttpError::Ok) {
-                return err;
+                return std::make_tuple(UpgradeType::None, err);
             }
 
             // Switches to body state on empty line
@@ -106,14 +119,21 @@ HttpError HttpConnection::innerRun() {
             break;
         }
 
+        // Lookup a handler for the URL
         HttpHandler handler;
         bool foundHandler;
         std::tie(handler, foundHandler) = handlerMap->getHandler(curUrl);
 
+        // If there is no handler, just 404 and loop
         if (!foundHandler) {
-            return sendStatus(404, "Not Found");
+            err = sendStatus(404, "Not Found");
+            if (err != HttpError::Ok) {
+                return std::make_tuple(UpgradeType::None, err);
+            }
+            continue;
         }
 
+        // Set up a reader based on the request
         ChunkedReader chunkedReader(bufReader);
         ContentLengthReader contentLengthReader(bufReader, contentLength);
         NullReader nullReader;
@@ -127,6 +147,7 @@ HttpError HttpConnection::innerRun() {
             inputStream = &nullReader;
         }
 
+        // Create request and response objects
         HttpRequestImpl requestImpl(curMethod,
             curUrl,
             headerNames,
@@ -136,13 +157,13 @@ HttpError HttpConnection::innerRun() {
         HttpResponseImpl responseImpl(curVersion,
             streamSource);
 
+        // Run the user handler
         handler(requestImpl, responseImpl);
 
         err = responseImpl.close();
         if (err != HttpError::Ok) {
-            return err;
+            return std::make_tuple(UpgradeType::None, err);
         }
-
     } while (keepAlive);
 
     // If we exit the main loop because we need to emit a status, it should be a
@@ -150,11 +171,11 @@ HttpError HttpConnection::innerRun() {
     if (!status.ok()) {
         err = sendStatus(status.code, status.reasonPhrase);
         if (err != HttpError::Ok) {
-            return err;
+            return std::make_tuple(UpgradeType::None, err);
         }
     }
 
-    return HttpError::Ok;
+    return std::make_tuple(UpgradeType::None, HttpError::Ok);
 }
 
 HttpConnection::Status HttpConnection::parseRequestLine(const StringRef line) {

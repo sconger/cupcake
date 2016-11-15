@@ -6,6 +6,15 @@
 
 using namespace Cupcake;
 
+static
+uint32_t checkedDouble(uint32_t val) {
+    // Will overflow if > half the max value
+    if (val >= 0x80000000) {
+        return UINT32_MAX;
+    }
+    return val * 2;
+}
+
 BufferedReader::BufferedReader() :
     socket(nullptr),
     buffer(),
@@ -101,8 +110,7 @@ std::tuple<StringRef, HttpError> BufferedReader::readLine(uint32_t maxLength) {
                 return std::make_tuple(StringRef(), HttpError::LineTooLong);
             }
 
-            // TODO: Overflow check
-            uint32_t newBufferLen = std::max(bufferLen * 2, maxLength + 2); // +2 to allow for \r\n
+            uint32_t newBufferLen = std::min(checkedDouble(bufferLen), maxLength + 2); // +2 to allow for \r\n
             std::unique_ptr<char[]> newPtr(new char[newBufferLen]);
             std::memcpy(newPtr.get(), buffer.get(), bufferLen);
             buffer.swap(newPtr);
@@ -135,8 +143,70 @@ std::tuple<StringRef, HttpError> BufferedReader::readLine(uint32_t maxLength) {
     } while (true);
 }
 
-HttpError BufferedReader::readFixedLength(char* buffer, uint32_t byteCount) {
-    // TODO
+HttpError BufferedReader::readFixedLength(char* destBuffer, uint32_t destBufferLen) {
+    HttpError err;
+    uint32_t bytesRead;
+    while (destBufferLen > 0) {
+        std::tie(bytesRead, err) = read(destBuffer, destBufferLen);
+        if (err != HttpError::Ok) {
+            return err;
+        }
+        if (bytesRead == 0) {
+            return HttpError::Eof;
+        }
+        destBuffer += bytesRead;
+        destBufferLen -= bytesRead;
+    }
 
     return HttpError::Ok;
+}
+
+std::tuple<bool, HttpError> BufferedReader::peekMatch(char* expectedData, uint32_t expectedDataLen) {
+    // Resize internal buffer if needed (shouldn't be in practice)
+    if (expectedDataLen > bufferLen) {
+        uint32_t newBufferLen = checkedDouble(expectedDataLen);
+        std::unique_ptr<char[]> newPtr(new char[newBufferLen]);
+        std::memcpy(newPtr.get(), buffer.get(), bufferLen);
+        buffer.swap(newPtr);
+        bufferLen = newBufferLen;
+    }
+
+    // If we can't fit things in given the current start index, move the data
+    // in the buffer.
+    if (bufferLen - startIndex < expectedDataLen) {
+        uint32_t available = endIndex - startIndex;
+        std::memmove(buffer.get(), buffer.get() + startIndex, available);
+        startIndex = 0;
+        endIndex = available;
+    }
+
+    // Read, checking match as we go
+    uint32_t checkIndex = 0;
+    uint32_t checkAmount = std::min(endIndex - startIndex, expectedDataLen);
+    bool match = std::memcmp(buffer.get()+startIndex, expectedData, checkAmount) == 0;
+    if (!match) {
+        return std::make_tuple(false, HttpError::Ok);
+    }
+    checkIndex += checkAmount;
+
+    while (endIndex < expectedDataLen) {
+        HttpError err;
+        uint32_t bytesRead;
+        std::tie(bytesRead, err) = socket->read(buffer.get() + endIndex, bufferLen - endIndex);
+        if (err != HttpError::Ok) {
+            return std::make_tuple(false, err);
+        }
+        if (bytesRead == 0) {
+            return std::make_tuple(false, HttpError::Eof);
+        }
+        checkAmount = std::min(bytesRead, expectedDataLen-checkIndex);
+        match = std::memcmp(buffer.get() + endIndex, expectedData + checkIndex, checkAmount) == 0;
+        endIndex += bytesRead;
+        if (!match) {
+            return std::make_tuple(false, HttpError::Ok);
+        }
+        checkIndex += checkAmount;
+    }
+
+    return std::make_tuple(true, HttpError::Ok);
 }

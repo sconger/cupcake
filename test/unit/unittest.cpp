@@ -99,6 +99,8 @@ int main(int argc, const char** argv) {
     // HTTP functionality
     RUN_TEST(test_bufferedreader_basic);
     RUN_TEST(test_bufferedreader_readline);
+    RUN_TEST(test_bufferedreader_readfixed);
+    RUN_TEST(test_bufferedreader_peekfixed);
     RUN_TEST(test_bufferedwriter_basic);
     RUN_TEST(test_bufferedwriter_flush);
 

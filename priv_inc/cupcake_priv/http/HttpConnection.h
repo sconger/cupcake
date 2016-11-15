@@ -20,10 +20,15 @@ namespace Cupcake {
  */
 class HttpConnection {
 public:
-    HttpConnection(StreamSource* streamSource, const HandlerMap* handlerMap);
+    enum class UpgradeType {
+        None,
+        H2C_Upgrade
+    };
+public:
+    HttpConnection(StreamSource* streamSource, BufferedReader& bufReader, const HandlerMap* handlerMap);
     ~HttpConnection();
 
-    void run();
+    UpgradeType run();
 
 private:
     HttpConnection(const HttpConnection&) = delete;
@@ -37,13 +42,15 @@ private:
         uint32_t code;
         const char* reasonPhrase;
 
-        Status() : code(0), reasonPhrase(nullptr) {}
-        Status(uint32_t status, const char* statusMessage) : code(status), reasonPhrase(statusMessage) {}
+        constexpr Status() : code(0), reasonPhrase(nullptr) {}
+        constexpr Status(uint32_t status, const char* statusMessage) :
+            code(status), reasonPhrase(statusMessage) {}
         bool ok() {return code == 0;}
     };
 
-    HttpError innerRun();
+    std::tuple<UpgradeType, HttpError> innerRun();
 
+    std::tuple<bool, HttpError> checkPreface();
     Status parseRequestLine(const StringRef line);
     Status parseHeaderLine(const StringRef line);
     Status parseSpecialHeaders();
@@ -51,7 +58,7 @@ private:
     HttpError sendStatus(uint32_t code, const StringRef reasonPhrase);
 
     const HandlerMap* handlerMap;
-    BufferedReader bufReader;
+    BufferedReader& bufReader;
     StreamSource* streamSource;
     HttpState state;
 

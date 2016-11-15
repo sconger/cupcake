@@ -46,9 +46,15 @@ HttpError HttpServer::acceptLoop() {
         }
 
         Async::runAsync([&acceptedSocket, handlerMapPtr] {
-            HttpConnection httpConnection(acceptedSocket, handlerMapPtr);
+            BufferedReader bufReader;
+            bufReader.init(acceptedSocket, 2048); // TODO: Define read constant somewhere
+            HttpConnection httpConnection(acceptedSocket, bufReader, handlerMapPtr);
             try {
-                httpConnection.run();
+                HttpConnection::UpgradeType upgradeType = httpConnection.run();
+
+                if (upgradeType != HttpConnection::UpgradeType::None) {
+                    // TODO: Http2 upgrade
+                }
             }
             catch (...) {
                 // TODO: log

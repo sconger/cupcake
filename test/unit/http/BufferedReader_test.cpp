@@ -153,3 +153,115 @@ bool test_bufferedreader_readline() {
 
     return true;
 }
+
+bool test_bufferedreader_readfixed() {
+    HttpError err = HttpError::Ok;
+    String testData = "12345aline\r\n67890\nabc";
+    ReadTestSource testSource(testData.c_str(), testData.length());
+    BufferedReader bufReader;
+    bufReader.init(&testSource, 4); // Intentionally small
+
+    char fixedBuf[5];
+
+    err = bufReader.readFixedLength(fixedBuf, 5);
+    if (err != HttpError::Ok) {
+        testf("Unnexpected error reading from buffered reader");
+        return false;
+    }
+    if (std::memcmp(fixedBuf, "12345", 5) != 0) {
+        testf("Did not read expected result");
+        return false;
+    }
+
+    StringRef line;
+    std::tie(line, err) = bufReader.readLine(100);
+    if (err != HttpError::Ok) {
+        testf("Unnexpected error reading from buffered reader");
+        return false;
+    }
+    if (!line.equals("aline")) {
+        testf("Did not read expected line from buffer");
+        return false;
+    }
+
+    err = bufReader.readFixedLength(fixedBuf, 5);
+    if (err != HttpError::Ok) {
+        testf("Unnexpected error reading from buffered reader");
+        return false;
+    }
+    if (std::memcmp(fixedBuf, "67890", 5) != 0) {
+        testf("Did not read expected result");
+        return false;
+    }
+
+    err = bufReader.readFixedLength(fixedBuf, 5);
+    if (err != HttpError::Eof) {
+        testf("Did not hit expected end of file");
+        return false;
+    }
+
+    return true;
+}
+
+bool test_bufferedreader_peekfixed() {
+    HttpError err = HttpError::Ok;
+    String testData = "12345abcd";
+    ReadTestSource testSource(testData.c_str(), testData.length());
+    BufferedReader bufReader;
+    bufReader.init(&testSource, 4); // Intentionally small
+
+    bool match;
+    std::tie(match, err) = bufReader.peekMatch("cat", 3);
+    if (err != HttpError::Ok) {
+        testf("Unnexpected error reading from buffered reader");
+        return false;
+    }
+    if (match) {
+        testf("String matched when it should not have");
+        return true;
+    }
+
+    std::tie(match, err) = bufReader.peekMatch("12345", 5);
+    if (err != HttpError::Ok) {
+        testf("Unnexpected error reading from buffered reader");
+        return false;
+    }
+    if (!match) {
+        testf("Failed to match with valid string");
+        return true;
+    }
+
+    char fixedBuf[5];
+    err = bufReader.readFixedLength(fixedBuf, 5);
+    if (err != HttpError::Ok) {
+        testf("Unnexpected error reading from buffered reader");
+        return false;
+    }
+    if (std::memcmp(fixedBuf, "12345", 5) != 0) {
+        testf("Did not read expected result");
+        return false;
+    }
+
+    std::tie(match, err) = bufReader.peekMatch("abcd", 4);
+    if (err != HttpError::Ok) {
+        testf("Unnexpected error reading from buffered reader");
+        return false;
+    }
+    if (!match) {
+        testf("Failed to match with valid string");
+        return true;
+    }
+
+    String line;
+    std::tie(line, err) = bufReader.readLine(100);
+    if (err != HttpError::Ok) {
+        testf("Unnexpected error reading from buffered reader");
+        return false;
+    }
+    if (!line.equals("abcd")) {
+        testf("Did not read expected data");
+        return true;
+    }
+
+    return true;
+}

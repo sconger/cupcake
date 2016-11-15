@@ -36,11 +36,6 @@ public:
     size_t length() const;
 };
 
-StringRef::StringRef() :
-    strData(nullptr),
-    len(0)
-{}
-
 StringRef::StringRef(const StringRef& other) :
     strData(other.strData),
     len(other.len)
@@ -49,16 +44,6 @@ StringRef::StringRef(const StringRef& other) :
 StringRef::StringRef(const String& str) :
     strData(str.data()),
     len(str.length())
-{}
-
-StringRef::StringRef(const char* str) :
-    strData(str),
-    len(std::strlen(str))
-{}
-
-StringRef::StringRef(const char* str, size_t length) :
-    strData(str),
-    len(length)
 {}
 
 StringRef::StringRef(StringRef&& other) :

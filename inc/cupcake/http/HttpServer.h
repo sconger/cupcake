@@ -18,7 +18,7 @@ namespace Cupcake {
 /*
  * An HTTP server implementation.
  *
- * Paths can be specified exactly "/images/default.gif", or end with an asterix "/images/*".
+ * Paths can be specified exactly "/images/default.gif", or end with a wildcard "/images/(asterix)".
  */
 class HttpServer {
 public:

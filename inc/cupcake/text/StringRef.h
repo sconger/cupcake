@@ -17,11 +17,11 @@ class String;
 class StringRef
 {
 public:
-    StringRef();
+    constexpr StringRef() : strData(nullptr), len(0) {}
     StringRef(const StringRef& other);
     StringRef(const String& str);
-    StringRef(const char* str);
-    StringRef(const char* str, size_t len);
+    constexpr StringRef(const char* str) : strData(str), len(_strlen(str)) {}
+    constexpr StringRef(const char* str, size_t len) : strData(str), len(len) {}
     StringRef& operator=(const StringRef&) = default;
     StringRef(StringRef&& other);
     StringRef& operator=(StringRef&& other);
@@ -62,6 +62,10 @@ public:
     bool endsWith(const StringRef strRef) const;
 
 private:
+    static constexpr size_t _strlen(const char* str) {
+        return (str == nullptr || (*str) == '\0') ? 0 : _strlen(str + 1) + 1;
+    }
+
     const char* strData;
     size_t len;
 };
