@@ -3,8 +3,8 @@
 
 #include "cupcake/net/AddrInfo.h"
 
-#include "cupcake_priv/Cstring.h"
-#include "cupcake_priv/Cupcake_priv_win.h"
+#include "cupcake/internal/Cstring.h"
+#include "cupcake/internal/Cupcake_priv_win.h"
 
 #include <cassert>
 #include <cstdio>

@@ -1,5 +1,5 @@
 
-#include "cupcake_priv/http/ContentLengthReader.h"
+#include "cupcake/internal/http/ContentLengthReader.h"
 
 #include <algorithm>
 #include <limits>

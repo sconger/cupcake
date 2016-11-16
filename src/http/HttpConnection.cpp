@@ -1,13 +1,13 @@
 
-#include "cupcake_priv/http/HttpConnection.h"
+#include "cupcake/internal/http/HttpConnection.h"
 
-#include "cupcake_priv/http/ChunkedReader.h"
-#include "cupcake_priv/http/CommaListIterator.h"
-#include "cupcake_priv/http/ContentLengthReader.h"
-#include "cupcake_priv/http/HttpRequestImpl.h"
-#include "cupcake_priv/http/HttpResponseImpl.h"
-#include "cupcake_priv/http/NullReader.h"
-#include "cupcake_priv/text/Strconv.h"
+#include "cupcake/internal/http/ChunkedReader.h"
+#include "cupcake/internal/http/CommaListIterator.h"
+#include "cupcake/internal/http/ContentLengthReader.h"
+#include "cupcake/internal/http/HttpRequestImpl.h"
+#include "cupcake/internal/http/HttpResponseImpl.h"
+#include "cupcake/internal/http/NullReader.h"
+#include "cupcake/internal/text/Strconv.h"
 
 #include <unordered_map>
 

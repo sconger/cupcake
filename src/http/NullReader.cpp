@@ -1,5 +1,5 @@
 
-#include "cupcake_priv/http/NullReader.h"
+#include "cupcake/internal/http/NullReader.h"
 
 using namespace Cupcake;
 

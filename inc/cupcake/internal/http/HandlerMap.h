@@ -5,7 +5,7 @@
 #include "cupcake/http/Http.h"
 #include "cupcake/text/StringRef.h"
 
-#include "cupcake_priv/util/PathTrie.h"
+#include "cupcake/internal/util/PathTrie.h"
 
 #include <tuple>
 

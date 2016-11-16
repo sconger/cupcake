@@ -1,5 +1,5 @@
 
-#include "cupcake_priv/http/BufferedReader.h"
+#include "cupcake/internal/http/BufferedReader.h"
 
 #include <algorithm>
 #include <cassert>

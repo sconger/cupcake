@@ -1,7 +1,7 @@
 
-#include "cupcake_priv/http/BufferedContentLengthWriter.h"
+#include "cupcake/internal/http/BufferedContentLengthWriter.h"
 
-#include "cupcake_priv/http/HttpResponseImpl.h"
+#include "cupcake/internal/http/HttpResponseImpl.h"
 
 using namespace Cupcake;
 

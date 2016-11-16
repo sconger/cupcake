@@ -4,7 +4,7 @@
 
 #include "cupcake/text/StringRef.h"
 
-#include "cupcake_priv/http/StreamSource.h"
+#include "cupcake/internal/http/StreamSource.h"
 
 #include <memory>
 #include <tuple>

@@ -1,7 +1,7 @@
 
-#include "cupcake_priv/http/ChunkedReader.h"
+#include "cupcake/internal/http/ChunkedReader.h"
 
-#include "cupcake_priv/text/Strconv.h"
+#include "cupcake/internal/text/Strconv.h"
 
 #include <algorithm>
 

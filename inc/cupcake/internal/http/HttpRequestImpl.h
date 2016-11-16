@@ -5,7 +5,7 @@
 #include "cupcake/http/Http.h"
 #include "cupcake/text/StringRef.h"
 
-#include "cupcake_priv/http/ContentLengthReader.h"
+#include "cupcake/internal/http/ContentLengthReader.h"
 
 #include <memory>
 #include <vector>

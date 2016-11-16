@@ -1,5 +1,5 @@
 
-#include "cupcake_priv/http2/Http2Connection.h"
+#include "cupcake/internal/http2/Http2Connection.h"
 
 #include "cupcake/async/Async.h"
 

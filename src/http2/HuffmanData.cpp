@@ -1,5 +1,5 @@
 
-#include "cupcake_priv/http2/HuffmanData.h"
+#include "cupcake/internal/http2/HuffmanData.h"
 
 namespace Cupcake {
 

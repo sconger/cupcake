@@ -3,8 +3,8 @@
 
 #include "cupcake/async/Async.h"
 
-#include "cupcake_priv/http/HttpConnection.h"
-#include "cupcake_priv/http/StreamSourceSocket.h"
+#include "cupcake/internal/http/HttpConnection.h"
+#include "cupcake/internal/http/StreamSourceSocket.h"
 
 using namespace Cupcake;
 

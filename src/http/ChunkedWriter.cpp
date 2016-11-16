@@ -1,8 +1,8 @@
 
-#include "cupcake_priv/http/ChunkedWriter.h"
+#include "cupcake/internal/http/ChunkedWriter.h"
 
 #include "cupcake/net/INet.h"
-#include "cupcake_priv/text/Strconv.h"
+#include "cupcake/internal/text/Strconv.h"
 
 using namespace Cupcake;
 

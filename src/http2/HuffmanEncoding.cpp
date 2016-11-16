@@ -1,6 +1,6 @@
 
-#include "cupcake_priv/http2/HuffmanEncoding.h"
-#include "cupcake_priv/http2/HuffmanData.h"
+#include "cupcake/internal/http2/HuffmanEncoding.h"
+#include "cupcake/internal/http2/HuffmanData.h"
 
 using namespace Cupcake;
 

@@ -5,10 +5,10 @@
 #include "cupcake/http/Http.h"
 #include "cupcake/http/HttpError.h"
 
-#include "cupcake_priv/http/BufferedContentLengthWriter.h"
-#include "cupcake_priv/http/ChunkedWriter.h"
-#include "cupcake_priv/http/ContentLengthWriter.h"
-#include "cupcake_priv/http/StreamSource.h"
+#include "cupcake/internal/http/BufferedContentLengthWriter.h"
+#include "cupcake/internal/http/ChunkedWriter.h"
+#include "cupcake/internal/http/ContentLengthWriter.h"
+#include "cupcake/internal/http/StreamSource.h"
 
 #include <vector>
 

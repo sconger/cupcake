@@ -1,5 +1,5 @@
 
-#include "cupcake_priv/http/StreamSourceSocket.h"
+#include "cupcake/internal/http/StreamSourceSocket.h"
 
 using namespace Cupcake;
 

@@ -1,6 +1,6 @@
 // strconf.cpp
 
-#include "cupcake_priv/text/Strconv.h"
+#include "cupcake/internal/text/Strconv.h"
 
 #include <algorithm>
 #include <cstdlib>

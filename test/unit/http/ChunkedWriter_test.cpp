@@ -2,8 +2,8 @@
 #include "unit/http/ChunkedWriter_test.h"
 #include "unit/UnitTest.h"
 
-#include "cupcake_priv/http/ChunkedWriter.h"
-#include "cupcake_priv/http/StreamSource.h"
+#include "cupcake/internal/http/ChunkedWriter.h"
+#include "cupcake/internal/http/StreamSource.h"
 #include "cupcake/text/String.h"
 
 #include <algorithm>

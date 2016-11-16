@@ -1,5 +1,5 @@
 
-#include "cupcake_priv/http/HttpRequestImpl.h"
+#include "cupcake/internal/http/HttpRequestImpl.h"
 
 using namespace Cupcake;
 

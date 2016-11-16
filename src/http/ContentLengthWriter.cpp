@@ -1,5 +1,5 @@
 
-#include "cupcake_priv/http/ContentLengthWriter.h"
+#include "cupcake/internal/http/ContentLengthWriter.h"
 
 using namespace Cupcake;
 

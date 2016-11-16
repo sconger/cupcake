@@ -4,7 +4,7 @@
 #endif
 
 #include "cupcake/Cupcake.h"
-#include "cupcake_priv/Cupcake_priv_win.h"
+#include "cupcake/internal/Cupcake_priv_win.h"
 
 #include <Windows.h>
 

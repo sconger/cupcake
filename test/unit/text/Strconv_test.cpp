@@ -2,7 +2,7 @@
 #include "unit/text/Strconv_test.h"
 #include "unit/UnitTest.h"
 
-#include "cupcake_priv/text/Strconv.h"
+#include "cupcake/internal/text/Strconv.h"
 
 #include <limits>
 #include <string>

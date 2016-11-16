@@ -7,7 +7,7 @@
 
 #include "cupcake/net/Socket.h"
 
-#include "cupcake_priv/net/SocketImpl_darwin.h"
+#include "cupcake/internal/net/SocketImpl_darwin.h"
 
 #include <experimental/resumable>
 

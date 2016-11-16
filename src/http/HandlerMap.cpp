@@ -1,5 +1,5 @@
 
-#include "cupcake_priv/http/HandlerMap.h"
+#include "cupcake/internal/http/HandlerMap.h"
 
 using namespace Cupcake;
 

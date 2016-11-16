@@ -3,7 +3,7 @@
 
 #include "unit/UnitTest.h"
 
-#include "cupcake_priv/util/PathTrie.h"
+#include "cupcake/internal/util/PathTrie.h"
 
 #include <array>
 #include <vector>

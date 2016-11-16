@@ -1,5 +1,5 @@
 
-#include "cupcake_priv/http/BufferedWriter.h"
+#include "cupcake/internal/http/BufferedWriter.h"
 
 using namespace Cupcake;
 

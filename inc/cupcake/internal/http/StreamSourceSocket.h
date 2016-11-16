@@ -3,7 +3,7 @@
 #define CUPCAKE_STREAM_SOURCE_SOCKET
 
 #include "cupcake/net/Socket.h"
-#include "cupcake_priv/http/StreamSource.h"
+#include "cupcake/internal/http/StreamSource.h"
 
 namespace Cupcake {
 

@@ -2,7 +2,7 @@
 #ifndef _WIN32
 
 #include "cupcake/net/Addrinfo.h"
-#include "cupcake_priv/CString.h"
+#include "cupcake/internal/CString.h"
 
 #include <cassert>
 #include <cstdio>

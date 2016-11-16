@@ -3,7 +3,7 @@
 #define _CRT_SECURE_NO_WARNINGS
 #endif
 
-#include "cupcake_priv/CString.h"
+#include "cupcake/internal/CString.h"
 
 #include <cstring>
 

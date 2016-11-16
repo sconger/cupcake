@@ -6,7 +6,7 @@
 #include "cupcake/net/Addrinfo.h"
 #include "cupcake/net/Socket.h"
 #include "cupcake/async/Async.h"
-#include "cupcake_priv/http/StreamSourceSocket.h"
+#include "cupcake/internal/http/StreamSourceSocket.h"
 
 #include <condition_variable>
 #include <vector>

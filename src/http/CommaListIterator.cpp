@@ -1,5 +1,5 @@
 
-#include "cupcake_priv/http/CommaListIterator.h"
+#include "cupcake/internal/http/CommaListIterator.h"
 
 using namespace Cupcake;
 

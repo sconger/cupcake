@@ -1,8 +1,8 @@
 
-#include "cupcake_priv/http/HttpResponseImpl.h"
+#include "cupcake/internal/http/HttpResponseImpl.h"
 
-#include "cupcake_priv/http/CommaListIterator.h"
-#include "cupcake_priv/text/Strconv.h"
+#include "cupcake/internal/http/CommaListIterator.h"
+#include "cupcake/internal/text/Strconv.h"
 
 #include <memory>
 

@@ -6,9 +6,9 @@
 #include "cupcake/text/StringRef.h"
 
 #include "cupcake/http/Http.h"
-#include "cupcake_priv/http/BufferedReader.h"
-#include "cupcake_priv/http/HandlerMap.h"
-#include "cupcake_priv/http/StreamSource.h"
+#include "cupcake/internal/http/BufferedReader.h"
+#include "cupcake/internal/http/HandlerMap.h"
+#include "cupcake/internal/http/StreamSource.h"
 
 #include <tuple>
 #include <vector>

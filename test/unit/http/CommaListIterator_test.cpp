@@ -2,7 +2,7 @@
 #include "unit/UnitTest.h"
 #include "unit/http/CommaListIterator_test.h"
 
-#include "cupcake_priv/http/CommaListIterator.h"
+#include "cupcake/internal/http/CommaListIterator.h"
 
 #include <vector>
 

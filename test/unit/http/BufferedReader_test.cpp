@@ -2,8 +2,8 @@
 #include "unit/http/BufferedReader_test.h"
 #include "unit/UnitTest.h"
 
-#include "cupcake_priv/http/BufferedReader.h"
-#include "cupcake_priv/http/StreamSource.h"
+#include "cupcake/internal/http/BufferedReader.h"
+#include "cupcake/internal/http/StreamSource.h"
 #include "cupcake/text/String.h"
 
 #include <algorithm>

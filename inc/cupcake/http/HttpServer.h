@@ -7,9 +7,9 @@
 #include "cupcake/net/SockAddr.h"
 #include "cupcake/text/StringRef.h"
 
-#include "cupcake_priv/http/StreamSource.h"
+#include "cupcake/internal/http/StreamSource.h"
 
-#include "cupcake_priv/http/HandlerMap.h"
+#include "cupcake/internal/http/HandlerMap.h"
 
 #include <memory>
 

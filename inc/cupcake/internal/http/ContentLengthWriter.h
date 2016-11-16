@@ -4,7 +4,7 @@
 
 #include "cupcake/http/Http.h"
 
-#include "cupcake_priv/http/StreamSource.h"
+#include "cupcake/internal/http/StreamSource.h"
 
 namespace Cupcake {
 

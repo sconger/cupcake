@@ -4,7 +4,7 @@
 
 #include "cupcake/http/Http.h"
 
-#include "cupcake_priv/http/BufferedReader.h"
+#include "cupcake/internal/http/BufferedReader.h"
 
 namespace Cupcake {
 

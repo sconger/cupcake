@@ -2,7 +2,7 @@
 #include "unit/UnitTest.h"
 #include "unit/http2/Huffman_test.h"
 
-#include "cupcake_priv/http2/HuffmanEncoding.h"
+#include "cupcake/internal/http2/HuffmanEncoding.h"
 
 #include <array>
 

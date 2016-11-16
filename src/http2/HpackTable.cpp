@@ -1,5 +1,5 @@
 
-#include "cupcake_priv/http2/HpackTable.h"
+#include "cupcake/internal/http2/HpackTable.h"
 
 #include <cassert>
 

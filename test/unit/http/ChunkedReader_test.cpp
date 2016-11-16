@@ -4,7 +4,7 @@
 #include "unit/UnitTest.h"
 
 #include "cupcake/text/String.h"
-#include "cupcake_priv/http/ChunkedReader.h"
+#include "cupcake/internal/http/ChunkedReader.h"
 
 #include <algorithm>
 
