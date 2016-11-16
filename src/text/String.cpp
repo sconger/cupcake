@@ -1,5 +1,5 @@
 
-#include "cupcake/text/String.h"
+#include "cupcake/internal/text/String.h"
 
 #include <algorithm>
 #include <cassert>

@@ -4,7 +4,7 @@
 
 #include "cupcake/internal/http/BufferedReader.h"
 #include "cupcake/internal/http/StreamSource.h"
-#include "cupcake/text/String.h"
+#include "cupcake/internal/text/String.h"
 
 #include <algorithm>
 #include <vector>

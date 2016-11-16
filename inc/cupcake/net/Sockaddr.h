@@ -4,7 +4,7 @@
 #define CUPCAKE_SOCKADDR_H
 
 #include "cupcake/net/INet.h"
-#include "cupcake/text/String.h"
+#include "cupcake/internal/text/String.h"
 #include "cupcake/text/StringRef.h"
 
 #ifdef _WIN32
@@ -48,11 +48,7 @@ public:
 #endif
 
 private:
-#ifdef WIN32
-    SOCKADDR_STORAGE storage;
-#else
     sockaddr_storage storage;
-#endif
 };
 
 }

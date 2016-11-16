@@ -17,7 +17,6 @@
 #include "unit/text/Strconv_test.h"
 #include "unit/net/AddrInfo_test.h"
 #include "unit/net/Socket_test.h"
-#include "unit/net/INet_test.h"
 #include "unit/util/PathTrie_test.h"
 
 #include "cupcake/Cupcake.h"
@@ -86,8 +85,6 @@ int main(int argc, const char** argv) {
     RUN_TEST(test_pathtrie_collision);
 
     // Socket functionality
-    RUN_TEST(test_inet_gethostname);
-
     RUN_TEST(test_addrinfo_addrlookup);
     RUN_TEST(test_addrinfo_asynclookup);
 

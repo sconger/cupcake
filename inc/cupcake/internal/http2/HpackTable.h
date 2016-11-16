@@ -2,7 +2,7 @@
 #ifndef CUPCAKE_HPACK_TABLE_H
 #define CUPCAKE_HPACK_TABLE_H
 
-#include "cupcake/text/String.h"
+#include "cupcake/internal/text/String.h"
 
 #include <deque>
 

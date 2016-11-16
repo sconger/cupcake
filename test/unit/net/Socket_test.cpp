@@ -2,7 +2,7 @@
 #include "unit/UnitTest.h"
 #include "unit/net/Socket_test.h"
 
-#include "cupcake/net/AddrInfo.h"
+#include "cupcake/internal/net/AddrInfo.h"
 #include "cupcake/net/Socket.h"
 
 #include <mutex>

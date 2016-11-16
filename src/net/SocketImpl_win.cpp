@@ -367,8 +367,8 @@ private:
 
         PrivWin::getGetAcceptExSockaddrs()(addrBuffer,
             0,
-            sizeof(SOCKADDR_STORAGE) + 16,
-            sizeof(SOCKADDR_STORAGE) + 16,
+            sizeof(sockaddr_storage) + 16,
+            sizeof(sockaddr_storage) + 16,
             &localPtr,
             &localLen,
             &remotePtr,
@@ -379,8 +379,8 @@ private:
         newSocket->socket = preparedSocket;
         newSocket->ptpIo = preparedPtpIo;
         // TODO: Use length values
-        newSocket->localAddr = SockAddr::fromNative((const SOCKADDR_STORAGE*)localPtr);
-        newSocket->remoteAddr = SockAddr::fromNative((const SOCKADDR_STORAGE*)remotePtr);
+        newSocket->localAddr = SockAddr::fromNative((const sockaddr_storage*)localPtr);
+        newSocket->remoteAddr = SockAddr::fromNative((const sockaddr_storage*)remotePtr);
     }
 
     SocketImpl* socketImpl;
@@ -389,7 +389,7 @@ private:
     OverlappedData overlappedData;
     CompletionResult completionResult;
 
-    char addrBuffer[2 * (sizeof(SOCKADDR_STORAGE) + 16)];
+    char addrBuffer[2 * (sizeof(sockaddr_storage) + 16)];
 
     // Result values
     SocketImpl* newSocket;
@@ -413,14 +413,14 @@ public:
         overlappedData.coroutineHandle = coroutineHandle.to_address();
         overlappedData.completionResult = &completionResult;
 
-        SOCKADDR_STORAGE storage;
+        sockaddr_storage storage;
         sockAddr.toNative(&storage);
 
         ::StartThreadpoolIo(socketImpl->ptpIo);
 
         BOOL res = PrivWin::getConnectEx()(socketImpl->socket,
             (const sockaddr*)&storage,
-            sizeof(SOCKADDR_STORAGE),
+            sizeof(sockaddr_storage),
             NULL,
             0,
             NULL,
@@ -457,8 +457,8 @@ public:
 private:
     /* Helper that does the work needed after a connect succeeds */
     void onConnect() {
-        SOCKADDR_STORAGE storage;
-        int nameLen = sizeof(SOCKADDR_STORAGE);
+        sockaddr_storage storage;
+        int nameLen = sizeof(sockaddr_storage);
         int nameRes = ::getsockname(socketImpl->socket, (sockaddr*)&storage, &nameLen);
         if (nameRes != 0) {
             socketError = getSocketError(::WSAGetLastError());
@@ -705,7 +705,7 @@ SocketError SocketImpl::bind(const SockAddr& sockAddr) {
         return SocketError::NotInitialized;
     }
 
-    SOCKADDR_STORAGE storage;
+    sockaddr_storage storage;
     sockAddr.toNative(&storage);
 
     // For bind we also want to set the SO_EXCLUSIVEADDRUSE option
@@ -715,13 +715,13 @@ SocketError SocketImpl::bind(const SockAddr& sockAddr) {
         return getSocketError(::WSAGetLastError());
     }
 
-    int bindRes = ::bind(socket, (const sockaddr*)&storage, sizeof(SOCKADDR_STORAGE));
+    int bindRes = ::bind(socket, (const sockaddr*)&storage, sizeof(sockaddr_storage));
     if (bindRes != 0) {
         return getSocketError(::WSAGetLastError());
     }
 
     // And then we need to fetch back the bound addr/port
-    int nameLen = sizeof(SOCKADDR_STORAGE);
+    int nameLen = sizeof(sockaddr_storage);
     int nameRes = ::getsockname(socket, (sockaddr*)&storage, &nameLen);
     if (nameRes != 0) {
         return getSocketError(::WSAGetLastError());
@@ -795,16 +795,16 @@ SocketError SocketImpl::connect(const SockAddr& sockAddr) {
         return SocketError::NotInitialized;
     }
 
-    SOCKADDR_STORAGE storage;
+    sockaddr_storage storage;
     sockAddr.toNative(&storage);
 
     // For reasons that I presume have to do with DisconnectEx, ConnectEx
     // requires a bound socket
-    SOCKADDR_STORAGE addrAny;
+    sockaddr_storage addrAny;
     addrAny.ss_family = storage.ss_family;
     INETADDR_SETANY((sockaddr*)&addrAny);
 
-    int bindRes = ::bind(socket, (const sockaddr*)&addrAny, sizeof(SOCKADDR_STORAGE));
+    int bindRes = ::bind(socket, (const sockaddr*)&addrAny, sizeof(sockaddr_storage));
     if (bindRes != 0) {
         return getSocketError(::WSAGetLastError());
     }

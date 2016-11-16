@@ -2,7 +2,7 @@
 #include "unit/UnitTest.h"
 #include "unit/net/AddrInfo_test.h"
 
-#include "cupcake/net/AddrInfo.h"
+#include "cupcake/internal/net/AddrInfo.h"
 #include "cupcake/net/Socket.h"
 
 bool test_addrinfo_addrlookup() {

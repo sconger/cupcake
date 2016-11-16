@@ -2,7 +2,7 @@
 #ifndef CUPCAKE_PATH_TRIE_H
 #define CUPCAKE_PATH_TRIE_H
 
-#include "cupcake/text/String.h"
+#include "cupcake/internal/text/String.h"
 #include "cupcake/text/StringRef.h"
 
 #include <algorithm>

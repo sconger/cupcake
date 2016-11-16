@@ -2,7 +2,7 @@
 #ifndef CUPCAKE_HTTP_CONNECTION_H
 #define CUPCAKE_HTTP_CONNECTION_H
 
-#include "cupcake/text/String.h"
+#include "cupcake/internal/text/String.h"
 #include "cupcake/text/StringRef.h"
 
 #include "cupcake/http/Http.h"

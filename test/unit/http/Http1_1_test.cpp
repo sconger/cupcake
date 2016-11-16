@@ -3,7 +3,7 @@
 #include "unit/UnitTest.h"
 
 #include "cupcake/http/HttpServer.h"
-#include "cupcake/net/Addrinfo.h"
+#include "cupcake/internal/net/AddrInfo.h"
 #include "cupcake/net/Socket.h"
 #include "cupcake/async/Async.h"
 #include "cupcake/internal/http/StreamSourceSocket.h"

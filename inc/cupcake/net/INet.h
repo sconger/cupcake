@@ -3,7 +3,7 @@
 #define CUPCAKE_INET_H
 
 #include "cupcake/net/SocketError.h"
-#include "cupcake/text/String.h"
+#include "cupcake/internal/text/String.h"
 
 #include <tuple>
 
@@ -23,8 +23,6 @@ struct IoBuffer {
     char* buffer;
     uint32_t bufferLen;
 };
-
-std::tuple<String, SocketError> getHostName();
 
 };
 

@@ -3,7 +3,7 @@
 
 #include "unit/UnitTest.h"
 
-#include "cupcake/text/String.h"
+#include "cupcake/internal/text/String.h"
 #include "cupcake/internal/http/ChunkedReader.h"
 
 #include <algorithm>
