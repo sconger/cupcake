@@ -3,8 +3,6 @@
 
 // Note that this file contains some objective-C
 
-// General TODO: Should create dispatch_source_t objects once and just pause them
-
 #include "cupcake/net/Socket.h"
 
 #include "cupcake/internal/net/SocketImpl_darwin.h"

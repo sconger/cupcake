@@ -5,7 +5,7 @@
 #include "cupcake/http/HttpServer.h"
 #include "cupcake/internal/net/AddrInfo.h"
 #include "cupcake/net/Socket.h"
-#include "cupcake/async/Async.h"
+#include "cupcake/internal/async/Async.h"
 #include "cupcake/internal/http/StreamSourceSocket.h"
 
 #include <condition_variable>

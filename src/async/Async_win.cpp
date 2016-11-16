@@ -3,7 +3,7 @@
 #error "This file should only be included in a Windows build"
 #endif
 
-#include "cupcake/async/Async.h"
+#include "cupcake/internal/async/Async.h"
 
 #include <Windows.h>
 

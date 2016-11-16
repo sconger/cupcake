@@ -1,4 +1,3 @@
-// strconf.cpp
 
 #include "cupcake/internal/text/Strconv.h"
 

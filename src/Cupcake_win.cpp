@@ -3,6 +3,10 @@
 #error "This file should only be included in a Windows build"
 #endif
 
+// TODO: Instead of explicit library initialization, should do a run-once
+// sort of thing. The completion port probably needs to be cleaned up by a
+// global destructor.
+
 #include "cupcake/Cupcake.h"
 #include "cupcake/internal/Cupcake_priv_win.h"
 

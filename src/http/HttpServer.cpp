@@ -1,8 +1,7 @@
 
 #include "cupcake/http/HttpServer.h"
 
-#include "cupcake/async/Async.h"
-
+#include "cupcake/internal/async/Async.h"
 #include "cupcake/internal/http/HttpConnection.h"
 #include "cupcake/internal/http/StreamSourceSocket.h"
 

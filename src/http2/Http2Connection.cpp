@@ -1,7 +1,7 @@
 
 #include "cupcake/internal/http2/Http2Connection.h"
 
-#include "cupcake/async/Async.h"
+#include "cupcake/internal/async/Async.h"
 
 using namespace Cupcake;
 
