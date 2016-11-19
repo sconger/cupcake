@@ -1,7 +1,5 @@
 
-#ifndef _WIN32
-#error "This file should only be included in a Windows build"
-#endif
+#ifdef _WIN32
 
 #include "cupcake/internal/async/Async.h"
 
@@ -51,3 +49,5 @@ void runAsync(std::function<void()> callback) {
 
 }
 }
+
+#endif // _WIN32

@@ -2,8 +2,6 @@
 #ifndef CUPCAKE_STRING_REF_H
 #define CUPCAKE_STRING_REF_H
 
-#include "cupcake/Cupcake.h"
-
 #include <cstdint>
 #include <functional>
 

@@ -4,7 +4,7 @@
 #include "cupcake/internal/net/AddrInfo.h"
 
 #include "cupcake/internal/Cstring.h"
-#include "cupcake/internal/Cupcake_priv_win.h"
+#include "cupcake/internal/Global_win.h"
 
 #include <cassert>
 #include <cstdio>
@@ -199,7 +199,7 @@ SocketError asyncLookup(void* context,
                         const lookupCallback& callback) {
 
     // If asynchronous GetAddrInfoEx is supported, call it directly
-    //if (Iocp::isGetAddrInfoExAsyncSupported()) {
+    //if (Global::isGetAddrInfoExAsyncSupported()) {
         // TODO: Implement
     //} else {
         // Submit as a thread pool task

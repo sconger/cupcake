@@ -3,7 +3,7 @@
 
 #include "cupcake/net/Socket.h"
 
-#include "cupcake/internal/Cupcake_priv_win.h"
+#include "cupcake/internal/Global_win.h"
 #include "cupcake/internal/net/SocketImpl_win.h"
 
 #include <Ws2tcpip.h>
@@ -116,7 +116,7 @@ int acceptExWithRetry(SOCKET socket,
     while (true) {
         ::StartThreadpoolIo(ptpIo);
 
-        BOOL res = PrivWin::getAcceptEx()(socket,
+        BOOL res = Global::getAcceptEx()(socket,
             preparedSocket,
             addrBuffer,
             0,
@@ -365,7 +365,7 @@ private:
         SOCKADDR* remotePtr = nullptr;
         INT remoteLen = 0;
 
-        PrivWin::getGetAcceptExSockaddrs()(addrBuffer,
+        Global::getGetAcceptExSockaddrs()(addrBuffer,
             0,
             sizeof(sockaddr_storage) + 16,
             sizeof(sockaddr_storage) + 16,
@@ -418,7 +418,7 @@ public:
 
         ::StartThreadpoolIo(socketImpl->ptpIo);
 
-        BOOL res = PrivWin::getConnectEx()(socketImpl->socket,
+        BOOL res = Global::getConnectEx()(socketImpl->socket,
             (const sockaddr*)&storage,
             sizeof(sockaddr_storage),
             NULL,
@@ -666,6 +666,9 @@ SocketError SocketImpl::init(INet::Protocol prot) {
     if (socket != INVALID_SOCKET) {
         return SocketError::InvalidState;
     }
+
+    // Make sure global data needed by this is initialized
+    Global::initGlobals();
 
     int family;
 

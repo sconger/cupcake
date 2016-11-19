@@ -2,7 +2,6 @@
 #ifndef CUPCAKE_STRING_H
 #define CUPCAKE_STRING_H
 
-#include "cupcake/Cupcake.h"
 #include "cupcake/text/StringRef.h"
 
 #include <functional>

@@ -1,18 +1,14 @@
 
-#ifndef _WIN32
-#error "This file should only be included in a Windows build"
-#endif
+#ifdef _WIN32
 
-// TODO: Instead of explicit library initialization, should do a run-once
-// sort of thing. The completion port probably needs to be cleaned up by a
-// global destructor.
-
-#include "cupcake/Cupcake.h"
-#include "cupcake/internal/Cupcake_priv_win.h"
+#include "cupcake/internal/Global_win.h"
 
 #include <Windows.h>
 
 #include <cstdio>
+
+static INIT_ONCE initOnce = INIT_ONCE_STATIC_INIT;
+static bool needCleanup = false;
 
 static HANDLE completionPort = INVALID_HANDLE_VALUE;
 
@@ -48,7 +44,7 @@ void* getExtension(SOCKET sock,
         NULL);
 
     if (res == SOCKET_ERROR) {
-        ::printf("WSAIoctl failed when trying to get extension function with: %d\n",
+        std::printf("WSAIoctl failed when trying to get extension function with: %d\n",
             ::WSAGetLastError());
         ::ExitProcess(1);
     }
@@ -56,14 +52,15 @@ void* getExtension(SOCKET sock,
     return ptr;
 }
 
-namespace Cupcake {
+static
+BOOL CALLBACK initOnceCallback(INIT_ONCE* InitOnce, void* Parameter, void** Context) {
+    needCleanup = true;
 
-void init() {
     // Initialize Winsock
     WSADATA wsaData;
-    int winSockRes = ::WSAStartup(MAKEWORD(2,2), &wsaData);
+    int winSockRes = ::WSAStartup(MAKEWORD(2, 2), &wsaData);
     if (winSockRes != 0) {
-        ::printf("WSAStartup failed with error: %d\n", ::WSAGetLastError());
+        std::printf("WSAStartup failed with error: %d\n", ::WSAGetLastError());
         ::ExitProcess(1);
     }
 
@@ -73,7 +70,7 @@ void init() {
         0,
         0);
     if (completionPort == INVALID_HANDLE_VALUE) {
-        ::printf("CreateIoCompletionPort failed with: %lu\n", ::GetLastError());
+        std::printf("CreateIoCompletionPort failed with: %lu\n", ::GetLastError());
         ::ExitProcess(1);
     }
 
@@ -85,7 +82,7 @@ void init() {
         0,
         WSA_FLAG_OVERLAPPED);
     if (sock == INVALID_SOCKET) {
-        ::printf("WSASocket failed with: %d\n", ::WSAGetLastError());
+        std::printf("WSASocket failed with error: %d\n", ::WSAGetLastError());
         ::ExitProcess(1);
     }
 
@@ -118,7 +115,7 @@ void init() {
         case ERROR_OLD_WIN_VERSION: // Normal fail due to version
             break;
         default:
-            ::printf("VerifyVersionInfoW failed with: %u\n", verInfoErr);
+            std::printf("VerifyVersionInfoW failed with: %u\n", verInfoErr);
             ::ExitProcess(1);
         }
     } else {
@@ -126,7 +123,8 @@ void init() {
     }
 }
 
-void cleanup() {
+static
+void cleanupGlobals() {
     // Cleanup Winsock
     int cleanupRes = ::WSACleanup();
 
@@ -141,27 +139,52 @@ void cleanup() {
     }
 }
 
-} // End namespace Cupcake
-
-namespace PrivWin {
-    HANDLE getCompletionPort() {
-        return completionPort;
+// Helper class to clean things up as the process exits
+class GlobalCleaner {
+public:
+    GlobalCleaner() {}
+    ~GlobalCleaner() {
+        cleanupGlobals();
     }
+};
 
-    bool isGetAddrInfoExAsyncSupported() {
-        return isWindows8OrLater;
-    }
+static
+GlobalCleaner globalCleaner;
 
-    // Global function pointers to extension functions
-    LPFN_ACCEPTEX getAcceptEx() {
-        return acceptExPtr;
-    }
+namespace Cupcake {
 
-    LPFN_GETACCEPTEXSOCKADDRS getGetAcceptExSockaddrs() {
-        return getAcceptExSockaddrsPtr;
-    }
+namespace Global {
 
-    LPFN_CONNECTEX getConnectEx() {
-        return connectExPtr;
+void initGlobals() {
+    BOOL initialized = ::InitOnceExecuteOnce(&initOnce, initOnceCallback, nullptr, nullptr);
+    if (!initialized) {
+        std::printf("InitOnceExecuteOnce failed with error: %u:\n", ::GetLastError());
+        ::ExitProcess(1);
     }
 }
+
+HANDLE getCompletionPort() {
+    return completionPort;
+}
+
+bool isGetAddrInfoExAsyncSupported() {
+    return isWindows8OrLater;
+}
+
+// Global function pointers to extension functions
+LPFN_ACCEPTEX getAcceptEx() {
+    return acceptExPtr;
+}
+
+LPFN_GETACCEPTEXSOCKADDRS getGetAcceptExSockaddrs() {
+    return getAcceptExSockaddrsPtr;
+}
+
+LPFN_CONNECTEX getConnectEx() {
+    return connectExPtr;
+}
+
+} // End namespace Global
+} // End namespace Cupcake
+
+#endif // _WIN32

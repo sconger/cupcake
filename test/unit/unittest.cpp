@@ -19,8 +19,6 @@
 #include "unit/net/Socket_test.h"
 #include "unit/util/PathTrie_test.h"
 
-#include "cupcake/Cupcake.h"
-
 #include <stdio.h>
 #include <stdarg.h>
 #include <string.h>
@@ -58,8 +56,6 @@ int testf(const char* fmt, ...) {
 
 int main(int argc, const char** argv) {
     testRes = 0;
-
-    Cupcake::init();
 
     // Text
     RUN_TEST(test_string_create);
@@ -133,8 +129,6 @@ int main(int argc, const char** argv) {
     } else {
         printf("SUCCESS: All tests passed.\n");
     }
-
-    Cupcake::cleanup();
 
     return testRes;
 }
