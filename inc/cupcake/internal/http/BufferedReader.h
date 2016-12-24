@@ -29,6 +29,7 @@ public:
     HttpError readFixedLength(char* buffer, uint32_t byteCount);
     std::tuple<bool, HttpError> peekMatch(char* expectedData, uint32_t expectedDataLen);
     std::tuple<StringRef, HttpError> readLine(uint32_t maxLength);
+    HttpError discard(uint32_t discardBytes);
 
 private:
     BufferedReader(const BufferedReader&) = delete;

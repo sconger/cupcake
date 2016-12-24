@@ -8,6 +8,7 @@
 #include "cupcake/http/Http.h"
 #include "cupcake/internal/http/BufferedReader.h"
 #include "cupcake/internal/http/HandlerMap.h"
+#include "cupcake/internal/http/RequestData.h"
 #include "cupcake/internal/http/StreamSource.h"
 
 #include <tuple>
@@ -62,11 +63,7 @@ private:
     StreamSource* streamSource;
     HttpState state;
 
-    HttpMethod curMethod;
-    HttpVersion curVersion;
-    String curUrl;
-    std::vector<String> headerNames;
-    std::vector<String> headerValues;
+    RequestData requestData;
     bool keepAlive;
     bool hasContentLength;
     uint64_t contentLength;

@@ -6,6 +6,7 @@
 #include "cupcake/text/StringRef.h"
 
 #include "cupcake/internal/http/ContentLengthReader.h"
+#include "cupcake/internal/http/RequestData.h"
 
 #include <memory>
 #include <vector>
@@ -14,10 +15,7 @@ namespace Cupcake {
 
 class HttpRequestImpl : public HttpRequest {
 public:
-    HttpRequestImpl(HttpMethod method,
-        StringRef url,
-        const std::vector<String>& headerNames,
-        const std::vector<String>& headerValues,
+    HttpRequestImpl(RequestData& requestData,
         HttpInputStream& inputStream);
 
     const HttpMethod getMethod() const override;
@@ -30,11 +28,7 @@ public:
     HttpInputStream& getInputStream() override;
 
 private:
-    HttpMethod method;
-    StringRef url;
-    const std::vector<String>& headerNames;
-    const std::vector<String>& headerValues;
-
+    RequestData& requestData;
     HttpInputStream& inputStream;
 };
 

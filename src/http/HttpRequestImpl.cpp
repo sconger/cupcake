@@ -3,38 +3,34 @@
 
 using namespace Cupcake;
 
-HttpRequestImpl::HttpRequestImpl(HttpMethod method,
-    StringRef url,
-    const std::vector<String>& headerNames,
-    const std::vector<String>& headerValues,
+HttpRequestImpl::HttpRequestImpl(RequestData& requestData,
     HttpInputStream& inputStream) :
-    method(method),
-    url(url),
-    headerNames(headerNames),
-    headerValues(headerValues),
+    requestData(requestData),
     inputStream(inputStream)
 {}
 
 const HttpMethod HttpRequestImpl::getMethod() const {
-    return method;
+    return requestData.getMethod();
 }
 
 const StringRef HttpRequestImpl::getUrl() const {
-    return url;
+    return requestData.getUrl();
 }
 
 uint32_t HttpRequestImpl::getHeaderCount() const {
-    return headerNames.size();
+    return requestData.getHeaderCount();
 }
 
 std::tuple<StringRef, StringRef> HttpRequestImpl::getHeader(uint32_t index) const {
-    return std::make_tuple(headerNames[index], headerValues[index]);
+    return std::make_tuple(requestData.getHeaderName(index), requestData.getHeaderValue(index));
 }
 
 std::tuple<StringRef, bool> HttpRequestImpl::getHeader(const StringRef headerName) const {
-    for (size_t i = 0; i < headerNames.size(); i++) {
-        if (headerNames[i].engEqualsIgnoreCase(headerName)) {
-            return std::make_tuple(headerValues[i], true);
+    // TODO: This should probably merge into a comma delimited list if there are multiple
+    for (size_t i = 0; i < requestData.getHeaderCount(); i++) {
+        const StringRef testName = requestData.getHeaderName(i);
+        if (testName.engEqualsIgnoreCase(headerName)) {
+            return std::make_tuple(requestData.getHeaderValue(i), true);
         }
     }
     return std::make_tuple(StringRef(), false);

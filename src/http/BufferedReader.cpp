@@ -210,3 +210,28 @@ std::tuple<bool, HttpError> BufferedReader::peekMatch(char* expectedData, uint32
 
     return std::make_tuple(true, HttpError::Ok);
 }
+
+HttpError BufferedReader::discard(uint32_t discardBytes) {
+    // Discard buffered data
+    do {
+        uint32_t available = endIndex - startIndex;
+        if (available > 0) {
+            if (available > discardBytes) {
+                startIndex += discardBytes;
+                return HttpError::Ok;
+            }
+            discardBytes -= available;
+            startIndex = 0;
+            endIndex = 0;
+        }
+
+        // Trigger a read, adding more data to the buffer
+        HttpError err;
+        uint32_t bytesRead;
+        std::tie(bytesRead, err) = socket->read(buffer.get(), bufferLen);
+        if (err != HttpError::Ok) {
+            return err;
+        }
+        endIndex = bytesRead;
+    } while (1);
+}

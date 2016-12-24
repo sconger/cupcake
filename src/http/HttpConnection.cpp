@@ -74,8 +74,7 @@ std::tuple<HttpConnection::UpgradeType, HttpError> HttpConnection::innerRun() {
 
     do {
         state = HttpState::Headers;
-        headerNames.clear();
-        headerValues.clear();
+        requestData.reset();
         keepAlive = false;
         hasContentLength = false;
         contentLength = 0;
@@ -122,7 +121,7 @@ std::tuple<HttpConnection::UpgradeType, HttpError> HttpConnection::innerRun() {
         // Lookup a handler for the URL
         HttpHandler handler;
         bool foundHandler;
-        std::tie(handler, foundHandler) = handlerMap->getHandler(curUrl);
+        std::tie(handler, foundHandler) = handlerMap->getHandler(requestData.getUrl());
 
         // If there is no handler, just 404 and loop
         if (!foundHandler) {
@@ -148,14 +147,8 @@ std::tuple<HttpConnection::UpgradeType, HttpError> HttpConnection::innerRun() {
         }
 
         // Create request and response objects
-        HttpRequestImpl requestImpl(curMethod,
-            curUrl,
-            headerNames,
-            headerValues,
-            *inputStream);
-
-        HttpResponseImpl responseImpl(curVersion,
-            streamSource);
+        HttpRequestImpl requestImpl(requestData, *inputStream);
+        HttpResponseImpl responseImpl(requestData.getVersion(), streamSource);
 
         // Run the user handler
         handler(requestImpl, responseImpl);
@@ -198,7 +191,7 @@ HttpConnection::Status HttpConnection::parseRequestLine(const StringRef line) {
         return Status(501, "Not Implemented");
     }
 
-    curMethod = methodLookup->second;
+    requestData.setMethod(methodLookup->second);
 
     // Extract URL
     StringRef url = line.substring(firstSpaceIndex + 1, secondSpaceIndex);
@@ -207,16 +200,16 @@ HttpConnection::Status HttpConnection::parseRequestLine(const StringRef line) {
         return Status(400, "Bad Request");
     }
 
-    curUrl = url;
+    requestData.setUrl(url);
 
     // Extract the version
     StringRef version = line.substring(secondSpaceIndex + 1, line.length());
 
     if (version.equals("HTTP/1.0")) {
-        curVersion = HttpVersion::Http1_0;
+        requestData.setVersion(HttpVersion::Http1_0);
         keepAlive = false;
     } else if (version.equals("HTTP/1.1")) {
-        curVersion = HttpVersion::Http1_1;
+        requestData.setVersion(HttpVersion::Http1_1);
         keepAlive = true;
     } else {
         if (version.startsWith("HTTP/")) {
@@ -245,7 +238,7 @@ HttpConnection::Status HttpConnection::parseHeaderLine(const StringRef line) {
 
     // If padded, treat as extension of previous line
     if (padLength != 0) {
-        headerValues.back().append(line.substring(padLength));
+        requestData.appendToHeaderValue(line.substring(padLength));
         return Status();
     }
 
@@ -273,8 +266,9 @@ HttpConnection::Status HttpConnection::parseHeaderLine(const StringRef line) {
     // In that case, we want to append it as a comma separated value to
     // the previous header.
     // https://www.w3.org/Protocols/rfc2616/rfc2616-sec4.html#sec4.2
-    for (size_t i = 0; i < headerNames.size(); i++) {
-        const String& existingHeaderName = headerNames[i];
+    /*
+    for (size_t i = 0; i < requestData.getHeaderCount(); i++) {
+        const String& existingHeaderName = requestData.getHeaderName(i);
         if (headerName.engEqualsIgnoreCase(existingHeaderName)) {
             String& existingValue = headerValues[i];
             existingValue.appendChar(',');
@@ -282,19 +276,21 @@ HttpConnection::Status HttpConnection::parseHeaderLine(const StringRef line) {
             return Status();
         }
     }
+    */
 
-    headerNames.push_back(headerName);
-    headerValues.push_back(headerValue);
+    requestData.addHeaderName(headerName);
+    requestData.addHeaderValue(headerValue);
     return Status();
 }
 
 // TODO: Store index of these headers so we don't need to find them?
 HttpConnection::Status HttpConnection::parseSpecialHeaders() {
-    for (size_t i = 0; i < headerNames.size(); i++) {
-        const String& headerName = headerNames[i];
+    for (size_t i = 0; i < requestData.getHeaderCount(); i++) {
+        const StringRef headerName = requestData.getHeaderName(i);
+        const StringRef headerValue = requestData.getHeaderValue(i);
         if (headerName.engEqualsIgnoreCase("Content-Length")) {
             bool validNumber;
-            std::tie(contentLength, validNumber) = Strconv::parseUint64(headerValues[i]);
+            std::tie(contentLength, validNumber) = Strconv::parseUint64(headerValue);
 
             if (!validNumber) {
                 return Status(400, "Bad Request");
@@ -302,17 +298,16 @@ HttpConnection::Status HttpConnection::parseSpecialHeaders() {
             hasContentLength = true;
         } else if (headerName.engEqualsIgnoreCase("Transfer-Encoding")) {
             // Chunked if value after last comma is "chunked"
-            StringRef transferEncoding = headerValues[i];
-            StringRef last = CommaListIterator(transferEncoding).getLast();
+            StringRef last = CommaListIterator(headerValue).getLast();
             isChunked = last.engEqualsIgnoreCase("chunked");
 
             // Chunked is only supported for HTTP1.1
-            if (curVersion == HttpVersion::Http1_0 && isChunked) {
+            if (requestData.getVersion() == HttpVersion::Http1_0 && isChunked) {
                 return Status(400, "Bad Request");
             }
         } else if (headerName.engEqualsIgnoreCase("Connection")) {
             // The Connection header is a comma separater list
-            CommaListIterator connectionIter(headerValues[i]);
+            CommaListIterator connectionIter(headerValue);
             bool closeFound = false;
             bool keepAliveFound = false;
             StringRef connectionNext = connectionIter.next();
@@ -350,7 +345,7 @@ HttpConnection::Status HttpConnection::checkAndFixupHeaders() {
 
     // Http1.1 Requires clients to send a host field
     // https://www.w3.org/Protocols/rfc2616/rfc2616-sec5.html#sec5.1.2
-    if (curVersion == HttpVersion::Http1_1 &&
+    if (requestData.getVersion() == HttpVersion::Http1_1 &&
         !hasHost) {
         return Status(400, "Bad Request");
     }
@@ -365,7 +360,7 @@ HttpError HttpConnection::sendStatus(uint32_t code, const StringRef reasonPhrase
 
     INet::IoBuffer ioBufs[4];
 
-    if (curVersion == HttpVersion::Http1_0) {
+    if (requestData.getVersion() == HttpVersion::Http1_0) {
         ioBufs[0].buffer = (char*)"HTTP/1.0 ";
     } else {
         ioBufs[0].buffer = (char*)"HTTP/1.1 ";
