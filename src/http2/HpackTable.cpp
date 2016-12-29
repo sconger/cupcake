@@ -10,6 +10,7 @@ using namespace Cupcake;
 
 // Maximum index of something in the static table (note that there is no 0 indexed entry)
 #define STATIC_TABLE_MAX 61
+#define DYNAMIC_TABLE_START 62
 
 // Tables from appendix A of the HPACK spec
 static
@@ -29,58 +30,59 @@ constexpr StringRef staticNames[STATIC_TABLE_MAX + 1] = {
     ":status",
     ":status",
     ":status",
-    ":accept-charset",
-    ":accept-encoding",
-    ":accept-language",
-    ":accept-ranges",
-    ":accept",
-    ":access-control-allow-origin",
-    ":age",
-    ":allow",
-    ":authorization",
-    ":cache-control",
-    ":content-disposition",
-    ":content-encoding",
-    ":content-language",
-    ":content-length",
-    ":content-location",
-    ":content-range",
-    ":content-type",
-    ":cookie",
-    ":date",
-    ":etag",
-    ":expect",
-    ":expires",
-    ":from",
-    ":host",
-    ":if-match",
-    ":if-modified-since",
-    ":if-none-match",
-    ":if-range",
-    ":if-unmodified-since",
-    ":last-modified",
-    ":link",
-    ":location",
-    ":max-forwards",
-    ":proxy-authenticate",
-    ":proxy-authorization",
-    ":range",
-    ":referer",
-    ":refresh",
-    ":retry-after",
-    ":server",
-    ":set-cookie",
-    ":strict-transport-security",
-    ":transfer-encoding",
-    ":user-agent",
-    ":vary",
-    ":via",
-    ":www-authenticate",
+    "accept-charset",
+    "accept-encoding",
+    "accept-language",
+    "accept-ranges",
+    "accept",
+    "access-control-allow-origin",
+    "age",
+    "allow",
+    "authorization",
+    "cache-control",
+    "content-disposition",
+    "content-encoding",
+    "content-language",
+    "content-length",
+    "content-location",
+    "content-range",
+    "content-type",
+    "cookie",
+    "date",
+    "etag",
+    "expect",
+    "expires",
+    "from",
+    "host",
+    "if-match",
+    "if-modified-since",
+    "if-none-match",
+    "if-range",
+    "if-unmodified-since",
+    "last-modified",
+    "link",
+    "location",
+    "max-forwards",
+    "proxy-authenticate",
+    "proxy-authorization",
+    "range",
+    "referer",
+    "refresh",
+    "retry-after",
+    "server",
+    "set-cookie",
+    "strict-transport-security",
+    "transfer-encoding",
+    "user-agent",
+    "vary",
+    "via",
+    "www-authenticate",
 };
 
 static
 constexpr StringRef staticValues[STATIC_TABLE_MAX + 1] = {
     nullptr, // There is no 0 indexed entry
+    "",
     "GET",
     "POST",
     "/",
@@ -96,6 +98,7 @@ constexpr StringRef staticValues[STATIC_TABLE_MAX + 1] = {
     "500",
     "",
     "gzip, deflate",
+    "",
     "",
     "",
     "",
@@ -196,7 +199,7 @@ const StringRef HpackTable::nameAtIndex(size_t index) const {
     if (index <= STATIC_TABLE_MAX) {
         return staticNames[index];
     }
-    return dynamicTable[index - STATIC_TABLE_MAX].name;
+    return dynamicTable[index - DYNAMIC_TABLE_START].name;
 }
 
 const StringRef HpackTable::valueAtIndex(size_t index) const {
@@ -205,5 +208,5 @@ const StringRef HpackTable::valueAtIndex(size_t index) const {
     if (index <= STATIC_TABLE_MAX) {
         return staticValues[index];
     }
-    return dynamicTable[index - STATIC_TABLE_MAX].value;
+    return dynamicTable[index - DYNAMIC_TABLE_START].value;
 }

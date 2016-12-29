@@ -64,6 +64,7 @@ HttpError HttpServer::acceptLoop() {
 }
 
 void HttpServer::shutdown() {
+    // TODO: Need to wait for workers under current model
     if (!started) {
         return;
     }

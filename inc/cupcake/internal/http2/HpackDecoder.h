@@ -28,11 +28,10 @@ private:
     bool readIndexedHeaderField();
     bool readLiteralHeaderIncrementalIndexing();
     bool readLiteralHeaderNoIndexing();
-    bool readLiteralHeaderNeverIndexed();
     bool readTableSizeUpdate();
 
     bool nextByte(uint8_t* value);
-    bool readNumberAfterPrefix(uint32_t* value);
+    bool readNumberAfterPrefix(uint32_t initialValue, uint32_t* value);
     bool readStringLiteral(std::vector<char>& buffer);
 
     HpackTable* hpackTable;

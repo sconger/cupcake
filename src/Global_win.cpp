@@ -121,6 +121,8 @@ BOOL CALLBACK initOnceCallback(INIT_ONCE* InitOnce, void* Parameter, void** Cont
     } else {
         isWindows8OrLater = true;
     }
+
+    return TRUE;
 }
 
 static

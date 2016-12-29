@@ -31,17 +31,17 @@ bool HpackDecoder::decode() {
             if (!readTableSizeUpdate()) {
                 return false;
             }
-        } else if ((startingByte & 0b1111'0000) == 0b0001'0000) {
-            if (!readLiteralHeaderNeverIndexed()) {
-                return false;
-            }
-        } else if ((startingByte & 0b1111'0000) == 0b0000'0000) {
+        } else if ((startingByte & 0b1111'0000) == 0b0001'0000 ||
+                   (startingByte & 0b1111'0000) == 0b0000'0000) {
+            // We don't need to treat these cases differently as we aren't
+            // proxying the data
             if (!readLiteralHeaderNoIndexing()) {
                 return false;
             }
         } else {
             return false;
         }
+        data++;
     }
 
     return true;
@@ -58,7 +58,7 @@ bool HpackDecoder::readIndexedHeaderField() {
         }
         index = firstByteData;
     } else {
-        bool res = readNumberAfterPrefix(&index);
+        bool res = readNumberAfterPrefix(0x7F, &index);
         if (!res) {
             return false;
         }
@@ -102,7 +102,7 @@ bool HpackDecoder::readLiteralHeaderIncrementalIndexing() {
         if (firstByteData < 0x3F) {
             index = firstByteData;
         } else {
-            res = readNumberAfterPrefix(&index);
+            res = readNumberAfterPrefix(0x3F, &index);
             if (!res) {
                 return false;
             }
@@ -129,14 +129,68 @@ bool HpackDecoder::readLiteralHeaderIncrementalIndexing() {
 }
 
 bool HpackDecoder::readLiteralHeaderNoIndexing() {
-    return true;
-}
+    bool res;
+    uint8_t firstByteData = (uint8_t)*data & 0x0F;
 
-bool HpackDecoder::readLiteralHeaderNeverIndexed() {
+    if (firstByteData == 0) {
+        // If the index is not set, we need to read both name and value
+        res = readStringLiteral(nameBuffer);
+        if (!res) {
+            return false;
+        }
+        res = readStringLiteral(valueBuffer);
+        if (!res) {
+            return false;
+        }
+        StringRef headerName(nameBuffer.data(), nameBuffer.size());
+        StringRef headerValue(valueBuffer.data(), valueBuffer.size());
+        requestData->addHeaderName(headerName);
+        requestData->addHeaderValue(headerValue);
+    } else {
+        uint32_t index = 0;
+        if (firstByteData < 0x0F) {
+            index = firstByteData;
+        } else {
+            res = readNumberAfterPrefix(0x0F, &index);
+            if (!res) {
+                return false;
+            }
+        }
+        if (!hpackTable->hasEntryAtIndex(index)) {
+            return false;
+        }
+        res = readStringLiteral(valueBuffer);
+        if (!res) {
+            return false;
+        }
+        StringRef headerName(hpackTable->nameAtIndex(index));
+        StringRef headerValue(valueBuffer.data(), valueBuffer.size());
+        if (index <= 61) {
+            requestData->addStaticHeaderName(headerName);
+        } else {
+            requestData->addHeaderName(headerName);
+        }
+        requestData->addHeaderValue(headerValue);
+    }
+
     return true;
 }
 
 bool HpackDecoder::readTableSizeUpdate() {
+    uint8_t firstByteData = (uint8_t)*data & 0x1F;
+
+    // TODO: Validate max against settings?
+
+    uint32_t newSize;
+    if (firstByteData < 0x1F) {
+        newSize = firstByteData;
+    } else {
+        if (!readNumberAfterPrefix(0x1F, &newSize)) {
+            return false;
+        }
+    }
+
+    hpackTable->resize(newSize);
     return true;
 }
 
@@ -149,11 +203,9 @@ bool HpackDecoder::nextByte(uint8_t* value) {
     return false;
 }
 
-bool HpackDecoder::readNumberAfterPrefix(uint32_t* value) {
+bool HpackDecoder::readNumberAfterPrefix(uint32_t initialValue, uint32_t* value) {
     // TODO: Should probably make optimized path where there are more than 5 bytes left
-    // The resVal != 0 checks are to guard against zero values that should have
-    // fit in the prefix.
-    uint32_t resVal = 0;
+    uint32_t resVal = initialValue;
     uint8_t byte;
 
     // First 7 bit extension
@@ -161,10 +213,10 @@ bool HpackDecoder::readNumberAfterPrefix(uint32_t* value) {
     if (!res) {
         return false;
     }
-    resVal = (byte & 0x7F);
-    if (byte & 0x80) {
+    resVal += (byte & 0x7F);
+    if ((byte & 0x80) == 0) {
         (*value) = resVal;
-        return resVal != 0;
+        return true;
     }
 
     // Second 7 bit extension
@@ -173,9 +225,9 @@ bool HpackDecoder::readNumberAfterPrefix(uint32_t* value) {
         return false;
     }
     resVal += (byte & 0x7F) << 7;
-    if (byte & 0x80) {
+    if ((byte & 0x80) == 0) {
         (*value) = resVal;
-        return resVal != 0;
+        return true;
     }
 
     // Third 7 bit extension
@@ -184,9 +236,9 @@ bool HpackDecoder::readNumberAfterPrefix(uint32_t* value) {
         return false;
     }
     resVal += (byte & 0x7F) << 14;
-    if (byte & 0x80) {
+    if ((byte & 0x80) == 0) {
         (*value) = resVal;
-        return resVal != 0;
+        return true;
     }
 
     // Fourth 7 bit extension
@@ -195,9 +247,9 @@ bool HpackDecoder::readNumberAfterPrefix(uint32_t* value) {
         return false;
     }
     resVal += (byte & 0x7F) << 21;
-    if (byte & 0x80) {
+    if ((byte & 0x80) == 0) {
         (*value) = resVal;
-        return resVal != 0;
+        return true;
     }
 
     // And we can only support 4 bits of a fifth byte
@@ -211,7 +263,7 @@ bool HpackDecoder::readNumberAfterPrefix(uint32_t* value) {
     }
     resVal += byte << 28;
     (*value) = resVal;
-    return resVal != 0;
+    return true;
 }
 
 bool HpackDecoder::readStringLiteral(std::vector<char>& buffer) {
@@ -227,12 +279,13 @@ bool HpackDecoder::readStringLiteral(std::vector<char>& buffer) {
     if (firstByteLength != 0) {
         length = firstByteLength;
     } else {
-        res = readNumberAfterPrefix(&length);
+        res = readNumberAfterPrefix(0x7F, &length);
         if (!res) {
             return false;
         }
     }
 
+    data++;
     size_t available = dataEnd - data;
     if (available < length) {
         return false;
@@ -245,6 +298,6 @@ bool HpackDecoder::readStringLiteral(std::vector<char>& buffer) {
         buffer.assign(data, data + length);
     }
 
-    data += length;
+    data += length - 1;
     return true;
 }

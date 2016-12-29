@@ -13,6 +13,7 @@
 #include "unit/http/Http1_test.h"
 #include "unit/http/Http1_1_test.h"
 #include "unit/http2/Huffman_test.h"
+#include "unit/http2/Hpack_test.h"
 #include "unit/text/String_test.h"
 #include "unit/text/Strconv_test.h"
 #include "unit/net/AddrInfo_test.h"
@@ -123,6 +124,14 @@ int main(int argc, const char** argv) {
     // Http2 functionality
     RUN_TEST(test_hpack_huffman_encode);
     RUN_TEST(test_hpack_huffman_decode);
+
+    RUN_TEST(test_hpack_indexed_header);
+    RUN_TEST(test_hpack_indexed_header_invalid);
+    RUN_TEST(test_hpack_incremental_indexing);
+    RUN_TEST(test_hpack_incremental_indexing_invalid);
+    RUN_TEST(test_hpack_without_indexing);
+    RUN_TEST(test_hpack_without_indexing_invalid);
+    RUN_TEST(test_hpack_table_size_change);
 
     if (testRes) {
         printf("FAILURE: Not all tests passed.\n");
