@@ -3,16 +3,16 @@
 
 #include "unit/UnitTest.h"
 
-#include "cupcake/internal/text/String.h"
+#include "cupcake/text/StringRef.h"
 #include "cupcake/internal/http/ChunkedReader.h"
 
 #include <algorithm>
 
 using namespace Cupcake;
 
-class ReadTestSource : public StreamSource {
+class ChunkedReaderTestSource : public StreamSource {
 public:
-    ReadTestSource(const char* sourceData, size_t dataLen) :
+    ChunkedReaderTestSource(const char* sourceData, size_t dataLen) :
         sourceData(sourceData),
         dataLen(dataLen) {}
 
@@ -62,7 +62,7 @@ private:
 
 // Basic happy case test
 bool test_chunkedreader_basic() {
-    const String inputData =
+    const StringRef inputData(
         "5\r\n"
         "abcde\r\n"
         "3\r\n"
@@ -70,9 +70,9 @@ bool test_chunkedreader_basic() {
         "1\r\n"
         "i\r\n"
         "0\r\n"
-        "\r\n";
+        "\r\n");
 
-    ReadTestSource testSource(inputData.data(), inputData.length());
+    ChunkedReaderTestSource testSource(inputData.data(), inputData.length());
     BufferedReader bufferedReader;
     bufferedReader.init(&testSource, 1024);
     ChunkedReader reader(bufferedReader);
@@ -123,11 +123,11 @@ bool test_chunkedreader_basic() {
 
 // Tests reading an empty stream
 bool test_chunkedreader_empty() {
-    const String inputData =
+    const StringRef inputData(
         "0\r\n"
-        "\r\n";
+        "\r\n");
 
-    ReadTestSource testSource(inputData.data(), inputData.length());
+    ChunkedReaderTestSource testSource(inputData.data(), inputData.length());
     BufferedReader bufferedReader;
     bufferedReader.init(&testSource, 1024);
     ChunkedReader reader(bufferedReader);
@@ -153,13 +153,13 @@ bool test_chunkedreader_empty() {
 // This tests reading a piece of chunked data that does not immediately end in \r\n.
 // Should be considered a client error
 bool test_chunkedreader_bad_data_line() {
-    const String inputData =
+    const StringRef inputData(
         "5\r\n"
         "abcde(extra)\r\n"
         "0\r\n"
-        "\r\n";
+        "\r\n");
 
-    ReadTestSource testSource(inputData.data(), inputData.length());
+    ChunkedReaderTestSource testSource(inputData.data(), inputData.length());
     BufferedReader bufferedReader;
     bufferedReader.init(&testSource, 1024);
     ChunkedReader reader(bufferedReader);
@@ -184,7 +184,7 @@ bool test_chunkedreader_bad_data_line() {
 
 // Tests that chunked extensions are ignored
 bool test_chunkedreader_extension() {
-    const String inputData =
+    const StringRef inputData(
         "5;name=value\r\n"
         "abcde\r\n"
         "3\r\n"
@@ -192,9 +192,9 @@ bool test_chunkedreader_extension() {
         "1\r\n"
         "i\r\n"
         "0;name=value\r\n"
-        "\r\n";
+        "\r\n");
 
-    ReadTestSource testSource(inputData.data(), inputData.length());
+    ChunkedReaderTestSource testSource(inputData.data(), inputData.length());
     BufferedReader bufferedReader;
     bufferedReader.init(&testSource, 1024);
     ChunkedReader reader(bufferedReader);
@@ -233,15 +233,15 @@ bool test_chunkedreader_extension() {
 
 // Tests that trailing headers are ignored
 bool test_chunkedreader_trailing_headers() {
-    const String inputData =
+    const StringRef inputData(
         "a\r\n"
         "0123456789\r\n"
         "0\r\n"
         "Some-Header: headerval\r\n"
         "Another-Header: 11\r\n"
-        "\r\n";
+        "\r\n");
 
-    ReadTestSource testSource(inputData.data(), inputData.length());
+    ChunkedReaderTestSource testSource(inputData.data(), inputData.length());
     BufferedReader bufferedReader;
     bufferedReader.init(&testSource, 1024);
     ChunkedReader reader(bufferedReader);

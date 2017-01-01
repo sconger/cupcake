@@ -63,11 +63,6 @@ endfunction(_add_dir_files)
 
 if(MSVC)
   set(CMAKE_CXX_FLAGS "/await /EHsc")
-
-  # No easy way to remove default RTC flag. Need to turn off at the moment.
-  STRING (REGEX REPLACE "/RTC(su|[1su])" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
-  STRING (REGEX REPLACE "/RTC(su|[1su])" "" CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}")
-  STRING (REGEX REPLACE "/RTC(su|[1su])" "" CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}")
 else()
   set(CMAKE_CXX_FLAGS "-std=c++14 -fcoroutines-ts -Wall")
 

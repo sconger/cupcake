@@ -4,16 +4,16 @@
 
 #include "cupcake/internal/http/BufferedReader.h"
 #include "cupcake/internal/http/StreamSource.h"
-#include "cupcake/internal/text/String.h"
+#include "cupcake/text/StringRef.h"
 
 #include <algorithm>
 #include <vector>
 
 using namespace Cupcake;
 
-class ReadTestSource : public StreamSource {
+class BuffReaderTestSource : public StreamSource {
 public:
-    ReadTestSource(const char* sourceData, size_t dataLen) :
+    BuffReaderTestSource(const char* sourceData, size_t dataLen) :
         sourceData(sourceData),
         dataLen(dataLen),
         readCount(0) {}
@@ -70,7 +70,7 @@ private:
 };
 
 bool test_bufferedreader_basic() {
-    ReadTestSource testSource("Hello World", 11);
+    BuffReaderTestSource testSource("Hello World", 11);
     BufferedReader bufReader;
     bufReader.init(&testSource, 100);
 
@@ -114,8 +114,8 @@ bool test_bufferedreader_basic() {
 }
 
 bool test_bufferedreader_readline() {
-    String testData = "line1\r\nline2\nline3\n\nline5";
-    ReadTestSource testSource(testData.c_str(), testData.length());
+    StringRef testData("line1\r\nline2\nline3\n\nline5");
+    BuffReaderTestSource testSource(testData.data(), testData.length());
     BufferedReader bufReader;
     bufReader.init(&testSource, 4); // Intentionally small
 
@@ -156,8 +156,8 @@ bool test_bufferedreader_readline() {
 
 bool test_bufferedreader_readfixed() {
     HttpError err = HttpError::Ok;
-    String testData = "12345aline\r\n67890\nabc";
-    ReadTestSource testSource(testData.c_str(), testData.length());
+    StringRef testData("12345aline\r\n67890\nabc");
+    BuffReaderTestSource testSource(testData.data(), testData.length());
     BufferedReader bufReader;
     bufReader.init(&testSource, 4); // Intentionally small
 
@@ -205,8 +205,8 @@ bool test_bufferedreader_readfixed() {
 
 bool test_bufferedreader_peekfixed() {
     HttpError err = HttpError::Ok;
-    String testData = "12345abcd";
-    ReadTestSource testSource(testData.c_str(), testData.length());
+    StringRef testData("12345abcd");
+    BuffReaderTestSource testSource(testData.data(), testData.length());
     BufferedReader bufReader;
     bufReader.init(&testSource, 4); // Intentionally small
 
